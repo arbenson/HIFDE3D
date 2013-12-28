@@ -1,6 +1,8 @@
 #ifndef _ID_HPP_
 #define _ID_HPP_
 
+#include "nummat.hpp"
+
 // Interpolative decomposition (ID) of a matrix M:
 //      
 //       M =~ M(:, skel) * W,

@@ -1,12 +1,7 @@
 #ifndef _VECMATOP_HPP_
 #define _VECMATOP_HPP_
 
-extern "C" {
-    void zgeqp3_(int *m, int *n, cpx16 *A, int *lda, int *jpvt, cpx16 *tau,
-		 cpx *work, int *lwork, double *rwork, int *info);
-    void ztrsm_(char *side, char *uplo, char *transa, char *diag, int *m,
-		int *n, cpx16 *alpha, cpx16 *A, int *lda, cpx16 *B, int  * ldb);
-}
+#include "blas.h"
 
 int lapack_zgeqp3(const CpxNumMat& A) {
     // Setup all of the inputs to the lapack call
