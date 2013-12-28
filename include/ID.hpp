@@ -17,48 +17,5 @@
 int interp_decomp(const CpxNumMat& M, CpxNumMat& W,
 		  std::vector<int>& skeleton_cols,
 		  std::vector<int>& redundant_cols, double epsilon);
-    // TODO: should do some handling of the size of the matrix
 
-    // QR factorization on M
-    lapack_zgeqp3(M);
-
-    // Find which indices correspond to skeleton DOFs
-    skel_tol = M(0, 0) * epsilon;
-    int max_ind = 0;
-    for (int i = 1; i < n; ++i) {
-	if (A(i, i) > skel_tol) {
-	    max_ind = i;
-	}
-    }
-    for (int i = 0; i <= max_ind; ++i) {
-	skeleton_cols.push_back(perm[i]);
-    }
-    for (int i = max_ind + 1; i <= M.n(); ++i) {
-	redundant_cols.push_back(perm[i]);
-    }
-
-    // Solve for the interpolating factor
-    W.resize(skeleton_cols.size(), M.n());
-    for (int i = 0; i < R.m(); ++i) {
-	for (int j = 0; j < R.n(); ++j) {
-	    if (j < i) {
-		W(i, j) = 0;
-	    } else {
-		W(i, j) = M(i, j);
-	    }
-	}
-    }
-    R_skel = CpxNumMat(skeleton_cols.size(), skeleton_cols.size());
-    for (int i = 0; i < R_skel.m(); ++i) {
-	for (int j = 0; j < R_skel.n(); ++j) {
-	    if (j < i) {
-		R_skel(i, j) = 0;
-	    } else {
-		R_skel(i, j) = M(i, j);
-	    }
-	}
-    }
-    lapack_ztrsm(R_skel, W);
-}
-
-#endif
+#endif  // _ID_HPP_
