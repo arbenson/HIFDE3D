@@ -1,6 +1,7 @@
 #ifndef FACTOR_HPP_
 #define FACTOR_HPP_
 
+#include "data.hpp"
 #include "dense.hpp"
 #include "sparse.hpp"
 #include "vec3t.hpp"
@@ -24,6 +25,26 @@ private:
     // Also update the matrix based on the eliminated degrees of freedom.
     int UpdateMatrix(Dense<Scalar> schur_comp, Vector<int>& rows,
 		     Vector<int>& cols, Vector<Index3>& eliminated_DOFs);
+
+    // For a given cell location at a given level, determine the indices of the
+    // DOFs interior to the cell.  These DOFs are eliminated by a Schur
+    // complement Also, determine the interaction of the interior DOFs.
+    //
+    // cell_location (in): 3-tuple of cell location
+    // W (in): width of the cell
+    // return value: 0 on failure, 1 on success
+    int InteriorCellIndexData(Index3 cell_location, int W, IndexData& data);
+    
+    // For a given cell location, level, and face, determine the indices of the
+    // DOFs interior to the face.  These DOFs are skeletonized.  Also, determine
+    // the interaction of the interior face DOFs.
+    //
+    // cell_location (in): 3-tuple of cell location
+    // Face (in): which face
+    // W (in): width of the cell
+    // data (out): indexing data
+    // return value: 0 on failure, 1 on success
+    int InteriorFaceIndexData(Index3 cell_location, Face face, int W, IndexData& data);
 
     Sparse<Scalar> sp_matrix_;
     int N_;
@@ -147,7 +168,7 @@ int HIFFactor<Scalar>::FormSchurAfterID(FactorData<Scalar>& data) {
 
     // TODO: check to make sure assignment like this works
     submat.Multiply(One<Scalar>, Rot, submat);
-    Rot.TransposeMultiply(One<Scalar>, submat, submat);
+    Rot.HermitianTransposeMultiply(One<Scalar>, submat, submat);
     Schur(submat, redundant_inds, skeleton_inds, data);
 }
 
@@ -166,7 +187,8 @@ int HIFFactor<Scalar>::Skeletonization(Face face, Index3 cell_location, FactorDa
 }
 
 template <typename Scalar>
-int HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int W, Vector<SkelData>& level_data) {
+int HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int W,
+				       Vector<SkelData>& level_data) {
     Vector<Index3> eliminated_DOFs;
     for (int i = 0; i < cells_per_dir; ++i) {
 	for (int j = 0; i < cells_per_dir; ++j) {
@@ -203,4 +225,4 @@ int HIFFactor<Scalar>::UpdateMatrix() {
     return 0;
 }
 
-#endif  // FACTOR_HPP_
+#endif  // ifndef FACTOR_HPP_
