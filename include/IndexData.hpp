@@ -5,7 +5,6 @@
 
 class IndexData {
 public:
-
     ~IndexData() {
 	global_inds_.clear();
 	DOF_set_.clear();
@@ -13,19 +12,34 @@ public:
     }
 
     // Indices into the global matrix of size N^3 x N^3
-    std::vector<int>& global_inds() { return global_inds_; }
+    Vector<int>& global_inds() { return global_inds_; }
 
     // If global_inds_ is of size n, then the DOF_set_* vectors
     // are disjoint index subsets of {0, ..., n-1} that correspond
     // to the degrees of freedom and the interactions.
-    std::vector<int>& DOF_set() { return DOF_set_; }
-    std::vector<int>& DOF_set_interaction() { return DOF_set_interaction_; }
+    Vector<int>& DOF_set() { return DOF_set_; }
+    Vector<int>& DOF_set_interaction() { return DOF_set_interaction_; }
 
 private:
+    Vector<int> global_inds_;
+    Vector<int> DOF_set_;    
+    Vector<int> DOF_set_interaction_;
+};
 
-    std::vector<int> global_inds_;
-    std::vector<int> DOF_set_;    
-    std::vector<int> DOF_set_interaction_;
+class SkelIndexData {
+public:
+    ~IndexData() {
+	global_rows_.clear();
+	global_cols_.clear();
+    }
+
+    // Indices into the global matrix of size N^3 x N^3
+    Vector<int>& global_rows() { return global_rows_; }
+    Vector<int>& global_rows() { return global_cols_; }
+
+private:
+    Vector<int> global_rows_;
+    Vector<int> global_cols_;
 };
 
 enum class Face {TOP, BOTTOM, RIGHT, LEFT, FRONT, BACK};
@@ -57,4 +71,4 @@ int InteriorCellIndexData(Index3 cell_location, int W, int N,
 int InteriorFaceIndexData(Index3 cell_location, Face face, int W, int N,
 			  const IntNumTns& remaining_DOFs, IndexData& data);
 
-#endif  // INDEX_DATA_HPP_
+#endif  // ifndef INDEX_DATA_HPP_

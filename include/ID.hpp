@@ -1,7 +1,9 @@
 #ifndef _ID_HPP_
 #define _ID_HPP_
 
-#include "nummat.hpp"
+#include "dense.hpp"
+
+#include <vector>
 
 // Interpolative decomposition (ID) of a matrix M:
 //      
@@ -16,8 +18,9 @@
 // skeleton_cols (out): list of skeleton cols of the ID
 // redundant_cols (out): list of redundant (non-skeleton) columns of the ID
 // epsilon (in): tolerance for the ID
-int interp_decomp(const CpxNumMat& M, CpxNumMat& W,
-		  std::vector<int>& skeleton_cols,
-		  std::vector<int>& redundant_cols, double epsilon);
+template <typename Scalar>
+int InterpDecomp(Dense<Scalar>& M, const Dense<Scalar>& W,
+		 std::vector<int>& skeleton_cols,
+		 std::vector<int>& redundant_cols, double epsilon);
 
 #endif  // _ID_HPP_

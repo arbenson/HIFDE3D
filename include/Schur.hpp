@@ -1,7 +1,9 @@
-#ifndef _SCHUR_INTERIOR_HPP_
-#define _SCHUR_INTERIOR_HPP_
+#ifndef SCHUR_HPP_
+#define SCHUR_HPP_
 
-#include <vector>
+#include "dense.hpp"
+#include "sparse.hpp"
+#include "vector.hpp"
 
 // Schur out DOFs from a matrix.  The matrix contains the DOFs to be eliminated
 // and the interaction of these DOFs in the rest of the matrix.
@@ -15,9 +17,9 @@
 // data (out): data to be filled A_22, A_22^{-1}, A22^{-1} * A21,
 //             and Schur complement
 // return value: 0 on failure, 1 on success
-template<T>
-int Schur(NumMat<T>& matrix, const std::vector<int>& DOF_set,
-	  const std::vector<int>& DOF_set_interaction,
+template <typename Scalar>
+int Schur(Dense<Scalar>& matrix, const Vector<int>& DOF_set,
+	  const Vector<int>& DOF_set_interaction,
 	  SchurData& data);
 
 // Extract a dense submatrix from a sparse matrix.
@@ -27,8 +29,8 @@ int Schur(NumMat<T>& matrix, const std::vector<int>& DOF_set,
 // cols (in): column indices
 // submatrix (out): sp_matrix(rows, cols) as a dense matrix
 // return value: 0 on failure, 1 on success
-template<T>
-int DenseSubmatrix(Sparse<T> sp_matrix, const std::vector<int>& rows,
-		   const std::vector<int>& cols, const NumMat<T>& submatrix);
+template <typename Scalar>
+int DenseSubmatrix(Sparse<T> sp_matrix, const Vector<int>& rows,
+		   const Vector<int>& cols, const Dense<Scalar>& submatrix);
 
-#endif  // _SCHUR_INTERIOR_HPP_
+#endif  // ifndef SCHUR_HPP_

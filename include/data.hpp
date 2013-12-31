@@ -3,26 +3,21 @@
 
 // Structure for storing the Schur complement data needed for application
 // to a vector.
-template <class T>
-class SchurData {
+template <typename Scalar>
+class FactorData {
 public:
-    // After A_22 has been set, fill in inverse, X_mat, and Schur update
-    void FillData(NumMat<T> A_21);
-
-    void set_A_22(NumMat<T> A_22);
+    void set_A_22(Dense<Scalar>& A_22);
+    void set_W_mat(Dense<Scalar>& W_mat);
+    void set_face(Face face) { face_ = face; }
 
 private:
     IndexData data_;
-    NumMat<T> A_22_;            // matrix restricted to interactions
-    NumMat<T> A_22_inv_;        // explicit inversion of A_22
-    NumMat<T> X_mat_;           // A_22_inv * A_21
-    NumMat<T> Schur_update_;    // -A_12 * X_mat
-};
-
-// Structure for storing the skeletonization data needed for application
-// to a vector.
-template <class T>
-class SkeletonizationData {
+    Dense<Scalar> A_22_;            // matrix restricted to interactions
+    Dense<Scalar> A_22_inv_;        // explicit inversion of A_22
+    Dense<Scalar> X_mat_;           // A_22_inv * A_21
+    Dense<Scalar> Schur_update_;    // -A_12 * X_mat
+    Dense<Scalar> W_mat_;           // Interpolative factor (only for Skel)
+    Face face_;
 };
 
 #endif  // _DATA_HPP_
