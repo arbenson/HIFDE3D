@@ -28,9 +28,10 @@ void Schur(Dense<Scalar>& matrix, FactorData<Scalar>& data) {
     Dense<Scalar> A21;
     DenseSubmatrix(matrix, DOF_set, DOF_set_interaction, A21);
     DenseSubmatrix(matrix, DOF_set, DOF_set, data.A22());
-
-    // TODO: implement the inverse function
-    data.A22().Inverse(data.A22_inv());
+    DenseSubmatrix(matrix, DOF_set, DOF_set, data.A22_inv());
+    // TODO: probably faster to copy A22 into A22_inv, rather than reading
+    // from the matrix again
+    Invert(data.A22_inv());
     data.A22_inv().Multiply(One<Scalar>, A21, data.X_mat());
     A12.Multiply(NegativeOne<Scalar>, data.X_mat(), data.Schur_comp());
 }
@@ -68,7 +69,7 @@ int DenseSubmatrix(Dense<Scalar>& matrix, const Vector<int>& rows,
     submatrix.Resize(rows.Size(), cols.Size());
     for (int i = 0; i < rows.Size(); ++i) {
 	for (int j = 0; i < cols.Size(); ++i) {
-	    submatrix.Set(i, j, matrix.Get(rows[i], cols[j]);
+	    submatrix.Set(i, j, matrix.Get(rows[i], cols[j]));
 	}
     }
 }
