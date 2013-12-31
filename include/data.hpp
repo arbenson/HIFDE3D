@@ -12,10 +12,7 @@ public:
     void set_A_22(NumMat<T> A_22);
 
 private:
-    std::vector<int> DOF_set_;
-    std::vector<int> DOF_set_interaction_;
-    std::vector<int> all_inds_; // DOF set and interactions, including those
-                                // that were not remaining DOFs.
+    IndexData data_;
     NumMat<T> A_22_;            // matrix restricted to interactions
     NumMat<T> A_22_inv_;        // explicit inversion of A_22
     NumMat<T> X_mat_;           // A_22_inv * A_21
