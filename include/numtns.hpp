@@ -98,7 +98,7 @@ public:
         assert( i >= 0 && i < _m && j >= 0 && j < _n && k >= 0 && k < _p);
         return _data[i + j * _m + k * _m * _n];
     }
-    
+
     F* data() const { return _data; }
     int m() const { return _m; }
     int n() const { return _n; }
