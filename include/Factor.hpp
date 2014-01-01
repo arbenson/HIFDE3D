@@ -3,36 +3,121 @@
 
 #include "data.hpp"
 #include "dense.hpp"
+#include "NumTns.hpp"
+#include "schur.hpp"
 #include "sparse.hpp"
 #include "vec3t.hpp"
-#include "vector.hpp"
 
-#include "math.h"
+#include <vector>
+
+#include <math.h>
 
 template <typename Scalar>
 class HIFFactor {
 public:
-    // TODO: constructor and destructor
-    int Factor();
+    // TODO: better constructor and destructor
+    HIFFactor() {}
+    ~HIFFactor() {}
+
+    // Form factorization of the matrix via HIF.
+    // The matrix, number of discretiztaion points (N), width at lowest
+    // level (P), and target accuracy (epsilon) must already be be provided.
+    void Factor();
+
+    // Convert a linear index to a tensor index. The tensor is of size
+    // N x N x N, where N is the number of discretization points per direction.
+    Index3 Linear2TensorInd(int ind);
+
+    // Convert a tensor index to a linear index. The tensor is of size
+    // N x N x N, where N is the number of discretization points per direction.
+    int Tensor2LinearInd(Index3 ind);
+
+    void set_N(int N) {
+	assert(N > 0);
+	N_ = N;
+    }
+    int N() { return N_; }
+
+    void set_P(int P) {
+	assert(P > 0);
+	P_ = N;
+    }
+    int P() { return P_; }
+
+    void set_epsilon(double epsilon) {
+	assert(epsilon > 0);
+	epsilon_ = epsilon;
+    }
+    double epsilon() { return epsilon_; }
+
+    dmhm::Sparse<Scalar>& sp_matrix() { return sp_matrix_; }
+
 
 private:
-    int LevelFactorSchur();
-    int LevelFactorSkel();
-    int FormSchurAfterID();
+    // Remove eliminated degrees of freedom.
+    //
+    // level (in): level at which to remove DOFs
+    // is_skel (in): wheter or not the update is after skeletonization (after
+    //               half level)
+    void UpdateRemainingDOFs(int level, bool is_skel);
 
-    // Take the (dense) Schur complement and update the matrix.
-    // Also update the matrix based on the eliminated degrees of freedom.
-    int UpdateMatrix(Dense<Scalar> schur_comp, Vector<int>& rows,
-		     Vector<int>& cols, Vector<Index3>& eliminated_DOFs);
+    // Eliminate DOFs interior to cells at a given level.
+    //
+    // cells_per_dir (in): Number of cells per direction.  There are
+    //                     cells_per_dir ^ 3 cells on which to eliminate
+    //                     interior DOFs.
+    // width (in): width of the cell in terms of number of points
+    // level (in): level at which to eliminate DOFs
+    void LevelFactorSchur(int cells_per_dir, int width, int level);
+
+    // Eliminate DOFs interior to cell faces via skeletonizations.
+    //
+    // cells_per_dir (in): Number of cells per direction.  There are
+    //                     cells_per_dir ^ 3 cells on which to eliminate
+    //                     interior DOFs.
+    // width (in): width of the cell in terms of number of points
+    // level (in): level at which to eliminate DOFs
+    void LevelFactorSkel(int cells_per_dir, int width, int level);
+
+    // Perform skeletonization on the DOFs corresponding to the
+    // interior of a single face.
+    //
+    // cell_location (in): 3-tuple of cell location
+    // Face (in): which face
+    // width (in): width of the cell in terms of number of points
+    // data (out): fills in all factorization data needed for this DOF set
+    //             for solves after factorization completes
+    void Skeletonization(Index3 cell_location, Face face, int width,
+                         FactorData<Scalar>& data);
+
+    // Eliminate redundant DOFs via Schur complements after the ID has
+    // completed.
+    // 
+    // data (in/out): Needs DOF data (global indices and skeleton/redundant indices)
+    //                filled in.  After function completes, all data is filled in.
+    void SchurAfterID(FactorData<Scalar>& data);
+
+    // Update the global sparse matrix with the Schur complements from a
+    // given level.  Also updates the remaining degrees of freedom.
+    // This function should be called after computing all Schur complements
+    // from either an integer level (just Schur complements) or half
+    // level (skeletonization). 
+    //
+    // level (in): the level for which computation has completed and for which
+    //             data will be used for the update
+    // is_skel (in): wheter or not the update is after skeletonization (after
+    //               half level)
+    void UpdateMatrixAndDOFs(int level, bool is_skel);
 
     // For a given cell location at a given level, determine the indices of the
     // DOFs interior to the cell.  These DOFs are eliminated by a Schur
     // complement Also, determine the interaction of the interior DOFs.
+    // The IndexData is filled with 
     //
     // cell_location (in): 3-tuple of cell location
-    // W (in): width of the cell
-    // return value: 0 on failure, 1 on success
-    int InteriorCellIndexData(Index3 cell_location, int W, IndexData& data);
+    // width (in): width of the cell in terms of number of points
+    // data (out): fills global indices, DOF set, and DOF set interactions.
+    void InteriorCellIndexData(Index3 cell_location, int width, IndexData& data);
     
     // For a given cell location, level, and face, determine the indices of the
     // DOFs interior to the face.  These DOFs are skeletonized.  Also, determine
@@ -40,42 +125,37 @@ private:
     //
     // cell_location (in): 3-tuple of cell location
     // Face (in): which face
-    // W (in): width of the cell
-    // data (out): indexing data
-    // return value: 0 on failure, 1 on success
-    int InteriorFaceIndexData(Index3 cell_location, Face face, int W, IndexData& data);
+    // width (in): width of the cell in terms of number of points
+    // data (out): fills global row and global column indices for skeletonization
+    void InteriorFaceIndexData(Index3 cell_location, Face face, int width,
+                               SkelIndexData& data);
 
-    Sparse<Scalar> sp_matrix_;
+    // DATA
+    dmhm::Sparse<Scalar> sp_matrix_;
     int N_;
     int P_;
     double epsilon_;
     IntNumTns remaining_DOFs_;
-    Vector< Vector< FactorData<Scalar> > > schur_level_data_;
-    Vector< Vector< FactorData<Scalar> > > skel_level_data_;
-}
-
-// TODO: re-organize the push_backs to avoid copies
+    std::vector< std::vector< FactorData<Scalar> > > schur_level_data_;
+    std::vector< std::vector< FactorData<Scalar> > > skel_level_data_;
+};
 
 template <typename Scalar>
-int HIFFactor<Scalar>::Factor() {
+void HIFFactor<Scalar>::Factor() {
     // ROUGH OUTLINE OF THIS FUNCTION
     int NC = N_ + 1;
     int num_levels = reinterpret_cast<int>(round(log2(NC / P_))) + 1;
 
     for (int level = 0; level < num_levels; ++level) {
-	int W = pow2(level - 1) * P_;
-        int points_per_cell = NC / W;
+	int width = pow2(level) * P_;
+        int points_per_cell = NC / width;
 
-	auto curr_data = schur_level_data_[level];
-	LevelFactorSchur(W, curr_data);
-	UpdateRemainingDOFsSchur(level);
-	UpdateMatrix(sp_matrix_, curr_data);
+	LevelFactorSchur(cells_per_dir, width, level);
+	UpdateMatrix(level, false);
 	
 	if (level < num_levels - 1) {
-	    auto curr_data = skel_level_data_[level];
-	    LevelFactorSkel(W, curr_data);
-	    UpdateRemainingDOFsSkel(level);
-	    UpdateMatrix(sp_matrix_, curr_data);
+	    LevelFactorSchur(cells_per_dir, width, level);
+	    UpdateMatrix(level, true);
 	}
     }
 }
@@ -99,7 +179,25 @@ int HIFFactor<Scalar>::Tensor2LinearInd(Index3 ind) {
 }
 
 template <typename Scalar>
-int HIFFactor<Scalar>::UpdateRemainingDOFs(Vector<int>& eliminated_DOFs) {
+void HIFFactor<Scalar>::UpdateRemainingDOFs(int level, bool is_skel) {
+    std::vector<int> eliminated_DOFs;
+
+    // Gather the DOFs
+    std::vector< FactorData<Scalar> >& level_data;
+    if (is_skel) {
+	level_data = skel_level_data_[level];
+    } else {
+	level_data = schur_level_data_[level];
+    }
+    for (int i = 0; i < level_data.Size(); ++i) {
+	auto DOF_set = level_data[i].ind_data().DOF_set();
+	auto global_inds = level_data[i].ind_data().global_inds();
+	for (int j = 0; j < DOF_set.Size(); ++j) {
+	    eliminated_DOFs.push_back(global_inds[DOF_set[j]]);
+	}
+    }
+
+    // Eliminate DOFs
     for (int i = 0; i < eliminated_DOFs.size(); ++i) {
 	Index3 ind = Linear2TensorInd(eliminated_DOFs[i]);
 	remaining_DOFs_(ind(0), ind(1), ind(2)) = 0;
@@ -107,68 +205,19 @@ int HIFFactor<Scalar>::UpdateRemainingDOFs(Vector<int>& eliminated_DOFs) {
 }
 
 template <typename Scalar>
-int HIFFactor<Scalar>::UpdateRemainingDOFsSchur(int level) {
-    Vector<int> eliminated_DOFs;
-    auto level_data = schur_level_data_[level];
-    for (int i = 0; i < level_data.Size(); ++i) {
-	auto DOF_set = level_data[i].ind_data().DOF_set();
-	auto global_inds = level_data[i].ind_data().global_inds();
-	for (int j = 0; j < DOF_set.Size(); ++j) {
-	    eliminated_DOFs.PushBack(global_inds[DOF_set[j]]);
-	}
-    }
-    UpdateRemainingDOFs(eliminated_DOFs);
-}
-
-template <typename Scalar>
-int HIFFactor<Scalar>::UpdateRemainingDOFsSkel(int level) {
-    Vector<Int> eliminated_DOFs;
-    auto level_data = skel_level_data_[level];
-    for (int i = 0; i < level_data.Size(); ++i) {
-	auto DOF_set = level_data[i].ind_data().DOF_set();
-	auto global_inds = level_data[i].ind_data().global_inds();
-	for (int j = 0; j < DOF_set.Size(); ++j) {
-	    eliminated_DOFs.PushBack(global_inds[DOF_set[j]]);
-	}
-    }
-    UpdateRemainingDOFs(eliminated_DOFs);
-}
-
-template <typename Scalar>
-int HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int W,
-					Vector< FactorData<Scalar> >& level_data) {
-    for (int i = 0; i < cells_per_dir; ++i) {
-	for (int j = 0; i < cells_per_dir; ++j) {
-	    for (int k = 0; i < cells_per_dir; ++k) {
-		FactorData<Scalar> factor_data;
-		InteriorCellIndexData(Index3(i, j, k), W, N, factor_data.ind_data());
-		
-		// Get local data from the global matrix
-		auto global_inds = factor_data.ind_data().global_inds();
-		Dense<Scalar> submat;
-		DenseSubmatrix(sp_matrix_, global_inds, global_inds, submat);
-
-		// Eliminate DOFs via Schur complement
-		FactorData<Scalar> factor_data;
-		
-		Schur(submat, factor_data);
-		level_data.push_back(factor_data);
-	    }
-	}
-    }
-}
-
-template <typename Scalar>
-int HIFFactor<Scalar>::FormSchurAfterID(FactorData<Scalar>& data) {
+void HIFFactor<Scalar>::SchurAfterID(FactorData<Scalar>& data) {
     auto global_inds = data.ind_data().global_inds();
-    Dense<Scalar> submat;
+    dmhm::Dense<Scalar> submat;
     DenseSubmatrix(sp_matrix_, global_inds, global_inds, submat);
 
+    // Start with identity
     int size = global_inds.Size();
-    Dense<Scalar> Rot = Dense(size, size, GENERAL);
+    dmhm::Dense<Scalar> Rot(size, size, dmhm::GENERAL);
     for (int i = 0; i < size; ++i) {
-	Rot(i, i) = One<Scalar>();
+	Rot(i, i) = 1.0;
     }
+
+    // Fill in with W
     auto skeleton_inds = data.ind_data().skeleton_set();
     auto redundant_inds = data.ind_data().redundant_set();
     for (int i = 0; i < skeleton_inds.size(); ++i) {
@@ -177,69 +226,106 @@ int HIFFactor<Scalar>::FormSchurAfterID(FactorData<Scalar>& data) {
 	}
     }
 
-    // TODO: check to make sure assignment like this works
-    // TODO: fix this stuff
-    Rot(lclsk,lclrd) = -lclW;
-
-    Dense<Scalar> tmp(submat.Height(), Rot.Width());
-    Multiply(One<Scalar>(), submat, Rot, tmp);
+    dmhm::Dense<Scalar> tmp(submat.Height(), Rot.Width(), dmhm::GENERAL);
+    Multiply(1.0, submat, Rot, tmp);
     
-    Dense<Scalar> result(Rot.Height(), tmp.Width());
-    AdjointMultiply(One<Scalar>(), Rot, tmp, result);
+    dmhm::Dense<Scalar> result(Rot.Height(), tmp.Width(), dmhm::GENERAL);
+    AdjointMultiply(1.0, Rot, tmp, result);
     Schur(result, data);
 }
 
 template <typename Scalar>
-int HIFFactor<Scalar>::Skeletonization(Face face, Index3 cell_location, FactorData<Scalar>& data) {
+void HIFFactor<Scalar>::Skeletonization(Index3 cell_location, Face face,
+					int width, FactorData<Scalar>& data) {
     SkelIndexData skel_data;
-    InteriorCellIndexData(cell_location, face, W, skel_data);
+    InteriorFaceIndexData(cell_location, face, width, skel_data);
     
-    Dense<Scalar> submat;
+    dmhm::Dense<Scalar> submat;
     DenseSubmatrix(sp_matrix_, skel_data.global_rows(), skel_data.global_cols(), submat);
-    FactorData<Scalar> factor_data;
     data.set_face(face);
-    InterpDecomp(submat, factor_data.W_mat(), factor_data.ind_data().skeleton_set(),
-		 factor_data.ind_data().redundant_set(), epsilon_);
-    FormSchurAfterID(skeleton_cols, redundant_cols, data.global_cols(), data);
+    std::vector<int>& cols = skel_data.global_cols();
+    // TODO: avoid this copy
+    std::vector<int>&  global = data.global_inds();
+    for (int i = 0; i < cols.size(); ++i) {
+	global.push_back(cols[i]);
+    }
+    InterpDecomp(submat, data.W_mat(), data.ind_data().skeleton_set(),
+		 data.ind_data().redundant_set(), epsilon_);
+    SchurAfterID(data);
 }
 
 template <typename Scalar>
-int HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int W,
-				       Vector<SkelData>& level_data) {
-    Vector<Index3> eliminated_DOFs;
+void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int W, int level) {
+    auto level_data = level_data_schur_[level];
+    for (int i = 0; i < cells_per_dir; ++i) {
+	for (int j = 0; i < cells_per_dir; ++j) {
+	    for (int k = 0; i < cells_per_dir; ++k) {
+		level_data.push_back(FactorData<Scalar>());
+		FactorData<Scalar>& factor_data = level_data[level_data.size() - 1];
+		InteriorCellIndexData(Index3(i, j, k), W, N, factor_data.ind_data());
+		
+		// Get local data from the global matrix
+		auto global_inds = factor_data.ind_data().global_inds();
+		dmhm::Dense<Scalar> submat;
+		DenseSubmatrix(sp_matrix_, global_inds, global_inds, submat);
+		Schur(submat, factor_data);
+	    }
+	}
+    }
+}
+
+template <typename Scalar>
+void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int W, int level) {
+    auto level_data = skel_level_data_[level];
+    std::vector<Index3> eliminated_DOFs;
     for (int i = 0; i < cells_per_dir; ++i) {
 	for (int j = 0; i < cells_per_dir; ++j) {
 	    for (int k = 0; i < cells_per_dir; ++k) {
 		Index3 cell_location(i, j, k);
 
-		// We only do half of the faces
+		// We only do half of the faces since each face is shared by
+		// two cells.  By arbitrary choice, we do the top, front, and
+		// right faces.
 		Face face = Face::TOP;
-		FactorData<Scalar> data_top;
-		data.set_face(face);
-		Skeletonization(face, cell_location, data_top);
-		level_data.push_back(data_top);
+		level_data.push_back(FactorData<Scalar>());
+		FactorData<Scalar>& top_data = level_data[level_data.size() - 1];
+		top_data.set_face(face);
+		Skeletonization(face, cell_location, top_data);
 
-		Face face = Face::FRONT;
-		FactorData<Scalar> data_front;
-		data.set_face(face);
-		Skeletonization(face, cell_location, data_front);
-		level_data.push_back(data_front);
+		face = Face::FRONT;
+		level_data.push_back(FactorData<Scalar>());
+		FactorData<Scalar>& front_data = level_data[level_data.size() - 1];
+		front_data.set_face(face);
+		Skeletonization(face, cell_location, front_data);
 
-		Face face = Face::RIGHT;
-		FactorData<Scalar> data_right;
-		data.set_face(face);
-		Skeletonization(face, cell_location, data_right);
-		level_data.push_back(data_right);
+		face = Face::RIGHT;
+		level_data.push_back(FactorData<Scalar>());
+		FactorData<Scalar>& right_data = level_data[level_data.size() - 1];
+		right_data.set_face(face);
+		Skeletonization(face, cell_location, right_data);
 	    }
 	}
     }
-    return 0;
 }
 
 template <typename Scalar>
-int HIFFactor<Scalar>::UpdateMatrix() {
+void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
     // TODO: implement this function
-    return 0;
+    return;
+}
+
+template <typename Scalar>
+void HIFFactor<Scalar>::InteriorCellIndexData(Index3 cell_location, int W,
+                                              IndexData& data) {
+    // TODO: implement this function
+    return;
+}
+
+template <typename Scalar>
+void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
+                                              int width, SkelIndexData& data) {
+    // TODO: implement this function
+    return;
 }
 
 #endif  // ifndef FACTOR_HPP_

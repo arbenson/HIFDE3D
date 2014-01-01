@@ -1,28 +1,13 @@
-#ifndef _COMMON_HPP_
-#define _COMMON_HPP_
+#ifndef TOOLS_HPP_
+#define TOOLS_HPP_
 
 // STL stuff
-#include <algorithm>
-#include <cassert>
-#include <cfloat>
-#include <cmath>
 #include <complex>
-#include <deque>
 #include <exception>
 #include <fstream>
 #include <iostream>
-#include <map>
-#include <queue>
-#include <set>
-#include <sstream>
-#include <string>
-#include <utility>
-#include <vector>
 
-// external libraries
-#include "blas.h"
-#include "fftw3.h"
-#include "mpi.h"
+#include <assert.h>
 
 typedef std::complex<double> cpx;
 
