@@ -4,6 +4,17 @@
 #include "dense.hpp"
 #include "vector.hpp"
 
+// Returns constant one
+template <typename Scalar>
+Scalar One();
+
+// Returns constant negative
+template <typename Scalar>
+Scalar NegativeOne();
+
+// Faces of a cube
+enum class Face {TOP, BOTTOM, RIGHT, LEFT, FRONT, BACK};
+
 // Structure for storing the Schur complement data needed for application
 // to a vector.
 template <typename Scalar>
@@ -70,7 +81,5 @@ private:
     Vector<int> global_rows_;
     Vector<int> global_cols_;
 };
-
-enum class Face {TOP, BOTTOM, RIGHT, LEFT, FRONT, BACK};
 
 #endif  // ifndef DATA_HPP_

@@ -32,8 +32,17 @@ void Schur(Dense<Scalar>& matrix, FactorData<Scalar>& data) {
     // TODO: probably faster to copy A22 into A22_inv, rather than reading
     // from the matrix again
     Invert(data.A22_inv());
-    data.A22_inv().Multiply(One<Scalar>, A21, data.X_mat());
-    A12.Multiply(NegativeOne<Scalar>, data.X_mat(), data.Schur_comp());
+
+    // X = A_22^{-1}A_{21}
+    // S = -A_{12}A_22^{-1}A_{21} = -A_{12}X
+    // TODO: This was the notation in the Matlab code, but it makes more
+    // sense to swap the 1 and 2.  That way, the Schur complement uses
+    // A_{11}^{-1}.
+
+    data.X_mat().Resize(data.A22_inv().Height(), A21.Width());
+    Multiply(One<Scalar>(), data.A22_inv(), A21, data.X_mat());
+    data.Schur_comp().Resize(A12.Height(), data.X_mat().Width());
+    Multiply(NegativeOne<Scalar>(), A12, data.X_mat(), data.Schur_comp());
 }
 
 // Extract a dense submatrix from a sparse matrix.

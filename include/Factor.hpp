@@ -9,7 +9,6 @@
 
 #include "math.h"
 
-
 template <typename Scalar>
 class HIFFactor {
 public:
@@ -82,9 +81,21 @@ int HIFFactor<Scalar>::Factor() {
 }
 
 template <typename Scalar>
-Index3 HIFFactor<Scalar>::Linear2TensorInd(int lin_ind) {
-    // Convert linear index to Index3 of N x N x N
-    // TODO: implement this function
+Index3 HIFFactor<Scalar>::Linear2TensorInd(int ind) {
+    int i = ind % N_;
+    int j = ((ind - i) % (N_ * N_)) / N_;
+    int k = (ind - i - N_ * j) / (N_ * N_);
+    assert(0 <= i && i < N_ && 0 <= j && j < N_ && 0 <= k && k < N_);
+    return Index3(i, j, k);
+}
+
+template <typename Scalar>
+int HIFFactor<Scalar>::Tensor2LinearInd(Index3 ind) {
+    int i = ind(0);
+    int j = ind(1);
+    int k = ind(2);
+    assert(0 <= i && i < N_ && 0 <= j && j < N_ && 0 <= k && k < N_);
+    return i + N * j + (N * N) * k;
 }
 
 template <typename Scalar>
@@ -162,14 +173,20 @@ int HIFFactor<Scalar>::FormSchurAfterID(FactorData<Scalar>& data) {
     auto redundant_inds = data.ind_data().redundant_set();
     for (int i = 0; i < skeleton_inds.size(); ++i) {
 	for (int j = 0; j < redundant_inds.size(); ++j) {
-	    Rot(skeleton_inds[i], redundant_inds[j]) = data.W_mat()(i, j);
+	    Rot(skeleton_inds[i], redundant_inds[j]) = -data.W_mat()(i, j);
 	}
     }
 
     // TODO: check to make sure assignment like this works
-    submat.Multiply(One<Scalar>, Rot, submat);
-    Rot.HermitianTransposeMultiply(One<Scalar>, submat, submat);
-    Schur(submat, redundant_inds, skeleton_inds, data);
+    // TODO: fix this stuff
+    Rot(lclsk,lclrd) = -lclW;
+
+    Dense<Scalar> tmp(submat.Height(), Rot.Width());
+    Multiply(One<Scalar>(), submat, Rot, tmp);
+    
+    Dense<Scalar> result(Rot.Height(), tmp.Width());
+    AdjointMultiply(One<Scalar>(), Rot, tmp, result);
+    Schur(result, data);
 }
 
 template <typename Scalar>
@@ -195,7 +212,7 @@ int HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int W,
 	    for (int k = 0; i < cells_per_dir; ++k) {
 		Index3 cell_location(i, j, k);
 
-		// Note: we only do half of the faces
+		// We only do half of the faces
 		Face face = Face::TOP;
 		FactorData<Scalar> data_top;
 		data.set_face(face);
