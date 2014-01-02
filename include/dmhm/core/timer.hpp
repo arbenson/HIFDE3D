@@ -10,6 +10,10 @@
 #ifndef DMHM_TIMER_HPP
 #define DMHM_TIMER_HPP 1
 
+#include "mpi.hpp"
+
+#include <map>
+
 namespace dmhm {
 
 // TODO: Switch to more reliable std::chrono-based C++11 implementation

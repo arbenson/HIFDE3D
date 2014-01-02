@@ -10,6 +10,8 @@
 #ifndef DMHM_VECTOR_HPP
 #define DMHM_VECTOR_HPP 1
 
+#include "tools.hpp"
+
 #include <cstring>
 #include <stdexcept>
 #include <vector>

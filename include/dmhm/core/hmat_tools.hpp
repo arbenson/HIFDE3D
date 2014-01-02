@@ -46,7 +46,6 @@ template<typename Scalar>
 void ConvertSubmatrix
 ( Dense<Scalar>& D, const Sparse<Scalar>& S,
   int iStart, int jStart, int height, int width );
-template<typename Scalar>
 
 /*
  *  Generalized addition of two dense/low-rank matrices, C := alpha A + beta B
