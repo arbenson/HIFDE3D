@@ -72,21 +72,6 @@ template<typename Scalar>
 void Multiply
 ( Scalar alpha, const Dense<Scalar>& A,
                 const LowRank<Scalar>& B,
-                      Dense<Scalar>& C )
-{
-#ifndef RELEASE
-    CallStackEntry entry("hmat_tools::Multiply (D := D F)");
-#endif
-    C.SetType( GENERAL );
-    C.Resize( A.Height(), B.Width() );
-    Multiply( alpha, A, B, Scalar(0), C );
-}
-
-// Form a dense matrix from a dense matrix times a low-rank matrix
-template<typename Scalar>
-void Multiply
-( Scalar alpha, const Dense<Scalar>& A,
-                const LowRank<Scalar>& B,
   Scalar beta,        Dense<Scalar>& C )
 {
 #ifndef RELEASE
@@ -122,21 +107,6 @@ void Multiply
       alpha, W.LockedBuffer(),   W.LDim(),
              B.V.LockedBuffer(), B.V.LDim(),
       beta,  C.Buffer(),         C.LDim() );
-}
-
-// Form a dense matrix from a low-rank matrix times a dense matrix
-template<typename Scalar>
-void Multiply
-( Scalar alpha, const LowRank<Scalar>& A,
-                const Dense<Scalar>& B,
-                      Dense<Scalar>& C )
-{
-#ifndef RELEASE
-    CallStackEntry entry("hmat_tools::Multiply (D := F D)");
-#endif
-    C.SetType( GENERAL );
-    C.Resize( A.Height(), B.Width() );
-    Multiply( alpha, A, B, Scalar(0), C );
 }
 
 // Form a dense matrix from a low-rank matrix times a dense matrix
@@ -194,20 +164,6 @@ void Multiply
                  W.LockedBuffer(),   W.LDim(),
           beta,  C.Buffer(),         C.LDim() );
     }
-}
-
-// Form a dense matrix from the product of two low-rank matrices.
-template<typename Scalar>
-void Multiply
-( Scalar alpha, const LowRank<Scalar>& A,
-                const LowRank<Scalar>& B,
-                      Dense<Scalar>& C )
-{
-#ifndef RELEASE
-    CallStackEntry entry("hmat_tools::Multiply (D := F F)");
-#endif
-    C.SetType( GENERAL ); C.Resize( A.Height(), B.Width() );
-    Multiply( alpha, A, B, Scalar(0), C );
 }
 
 // Update a dense matrix from the product of two low-rank matrices.
@@ -498,56 +454,6 @@ void Multiply
     }
 }
 
-template<typename Real>
-void Multiply
-( int maxRank, Real alpha,
-  const Dense<Real>& A,
-  const Dense<Real>& B,
-  Real beta,
-  LowRank<Real>& C )
-{
-#ifndef RELEASE
-    CallStackEntry entry("hmat_tools::Multiply (F := D D + F)");
-    if( A.Width() != B.Height() )
-        throw std::logic_error("A and B not conformal in Multiply");
-    if( C.Height() != A.Height() || C.Width() != B.Width() )
-        throw std::logic_error("C not conformal with AB");
-#endif
-    // D := alpha A B + beta C
-    Dense<Real> D;
-    Multiply( alpha, A, B, D );
-    Update( beta, C, (Real)1, D );
-
-    // Truncate D down to a low-rank matrix of rank 'maxRank'
-    Compress( maxRank, D, C );
-}
-
-template<typename Real>
-void Multiply
-( int maxRank, std::complex<Real> alpha,
-  const Dense<std::complex<Real> >& A,
-  const Dense<std::complex<Real> >& B,
-  std::complex<Real> beta,
-        LowRank<std::complex<Real> >& C )
-{
-#ifndef RELEASE
-    CallStackEntry entry("hmat_tools::Multiply (F := D D + F)");
-    if( A.Width() != B.Height() )
-        throw std::logic_error("A and B not conformal in Multiply");
-    if( C.Height() != A.Height() || C.Width() != B.Width() )
-        throw std::logic_error("C not conformal with AB");
-#endif
-    typedef std::complex<Real> Scalar;
-
-    // D := alpha A B + beta C
-    Dense<Scalar> D;
-    Multiply( alpha, A, B, D );
-    Update( beta, C, Scalar(1), D );
-
-    // Truncate D down to a low-rank matrix of rank 'maxRank'
-    Compress( maxRank, D, C );
-}
-
 // Dense C := alpha A B
 template void Multiply
 ( float alpha, const Dense<float>& A,
@@ -588,26 +494,6 @@ template void Multiply
 template void Multiply
 ( float alpha, const Dense<float>& A,
                const LowRank<float>& B,
-                     Dense<float>& C );
-template void Multiply
-( double alpha, const Dense<double>& A,
-                const LowRank<double>& B,
-                      Dense<double>& C );
-template void Multiply
-( std::complex<float> alpha,
-  const Dense<std::complex<float> >& A,
-  const LowRank<std::complex<float> >& B,
-        Dense<std::complex<float> >& C );
-template void Multiply
-( std::complex<double> alpha,
-  const Dense<std::complex<double> >& A,
-  const LowRank<std::complex<double> >& B,
-        Dense<std::complex<double> >& C );
-
-// Form a dense matrix from a dense matrix times a low-rank matrix
-template void Multiply
-( float alpha, const Dense<float>& A,
-               const LowRank<float>& B,
   float beta,        Dense<float>& C );
 template void Multiply
 ( double alpha, const Dense<double>& A,
@@ -630,26 +516,6 @@ template void Multiply
 template void Multiply
 ( float alpha, const LowRank<float>& A,
                const Dense<float>& B,
-                     Dense<float>& C );
-template void Multiply
-( double alpha, const LowRank<double>& A,
-                const Dense<double>& B,
-                      Dense<double>& C );
-template void Multiply
-( std::complex<float> alpha,
-  const LowRank<std::complex<float> >& A,
-  const Dense<std::complex<float> >& B,
-        Dense<std::complex<float> >& C );
-template void Multiply
-( std::complex<double> alpha,
-  const LowRank<std::complex<double> >& A,
-  const Dense<std::complex<double> >& B,
-        Dense<std::complex<double> >& C );
-
-// Form a dense matrix from a low-rank matrix times a dense matrix
-template void Multiply
-( float alpha, const LowRank<float>& A,
-               const Dense<float>& B,
   float beta,        Dense<float>& C );
 template void Multiply
 ( double alpha, const LowRank<double>& A,
@@ -664,25 +530,6 @@ template void Multiply
   const LowRank<std::complex<double> >& A,
   const Dense<std::complex<double> >& B,
   std::complex<double> beta,
-        Dense<std::complex<double> >& C );
-
-template void Multiply
-( float alpha, const LowRank<float>& A,
-               const LowRank<float>& B,
-                     Dense<float>& C );
-template void Multiply
-( double alpha, const LowRank<double>& A,
-                const LowRank<double>& B,
-                      Dense<double>& C );
-template void Multiply
-( std::complex<float> alpha,
-  const LowRank<std::complex<float> >& A,
-  const LowRank<std::complex<float> >& B,
-        Dense<std::complex<float> >& C );
-template void Multiply
-( std::complex<double> alpha,
-  const LowRank<std::complex<double> >& A,
-  const LowRank<std::complex<double> >& B,
         Dense<std::complex<double> >& C );
 
 template void Multiply
@@ -786,32 +633,6 @@ template void Multiply
 ( int maxRank, std::complex<double> alpha,
   const Dense<std::complex<double> >& A,
   const Dense<std::complex<double> >& B,
-        LowRank<std::complex<double> >& C );
-
-// Update a low-rank matrix from the product of two dense matrices
-template void Multiply
-( int maxRank, float alpha,
-  const Dense<float>& A,
-  const Dense<float>& B,
-  float beta,
-        LowRank<float>& C );
-template void Multiply
-( int maxRank, double alpha,
-  const Dense<double>& A,
-  const Dense<double>& B,
-  double beta,
-        LowRank<double>& C );
-template void Multiply
-( int maxRank, std::complex<float> alpha,
-  const Dense<std::complex<float> >& A,
-  const Dense<std::complex<float> >& B,
-  std::complex<float> beta,
-        LowRank<std::complex<float> >& C );
-template void Multiply
-( int maxRank, std::complex<double> alpha,
-  const Dense<std::complex<double> >& A,
-  const Dense<std::complex<double> >& B,
-  std::complex<double> beta,
         LowRank<std::complex<double> >& C );
 
 } // namespace hmat_tools

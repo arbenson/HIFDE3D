@@ -101,21 +101,6 @@ template<typename Scalar>
 void AdjointMultiply
 ( Scalar alpha, const Dense<Scalar>& A,
                 const LowRank<Scalar>& B,
-                      Dense<Scalar>& C )
-{
-#ifndef RELEASE
-    CallStackEntry entry("hmat_tools::AdjointMultiply (D := D^H F)");
-#endif
-    C.SetType( GENERAL );
-    C.Resize( A.Width(), B.Width() );
-    AdjointMultiply( alpha, A, B, Scalar(0), C );
-}
-
-// Form a dense matrix from a dense matrix times a low-rank matrix
-template<typename Scalar>
-void AdjointMultiply
-( Scalar alpha, const Dense<Scalar>& A,
-                const LowRank<Scalar>& B,
   Scalar beta,        Dense<Scalar>& C )
 {
 #ifndef RELEASE
@@ -175,21 +160,6 @@ void AdjointMultiply
                  B.V.LockedBuffer(), B.V.LDim(),
           beta,  C.Buffer(),         C.LDim() );
     }
-}
-
-// Form a dense matrix from a low-rank matrix times a dense matrix
-template<typename Scalar>
-void AdjointMultiply
-( Scalar alpha, const LowRank<Scalar>& A,
-                const Dense<Scalar>& B,
-                      Dense<Scalar>& C )
-{
-#ifndef RELEASE
-    CallStackEntry entry("hmat_tools::AdjointMultiply (D := F^H D)");
-#endif
-    C.SetType( GENERAL );
-    C.Resize( A.Width(), B.Width() );
-    AdjointMultiply( alpha, A, B, Scalar(0), C );
 }
 
 // Form a dense matrix from a low-rank matrix times a dense matrix
@@ -258,20 +228,6 @@ void AdjointMultiply
                  W.LockedBuffer(),      W.LDim(),
           beta,  C.Buffer(),            C.LDim() );
     }
-}
-
-// Form a dense matrix from the product of two low-rank matrices
-template<typename Scalar>
-void AdjointMultiply
-( Scalar alpha, const LowRank<Scalar>& A,
-                const LowRank<Scalar>& B,
-                      Dense<Scalar>& C )
-{
-#ifndef RELEASE
-    CallStackEntry entry("hmat_tools::AdjointMultiply (D := F^H F)");
-#endif
-    C.SetType( GENERAL ); C.Resize( A.Width(), B.Width() );
-    AdjointMultiply( alpha, A, B, Scalar(0), C );
 }
 
 // Update a dense matrix from the product of two low-rank matrices
@@ -480,19 +436,6 @@ void AdjointMultiply
 
 template<typename Real>
 void AdjointMultiply
-( int maxRank, Real alpha,
-  const Dense<Real>& A,
-  const Dense<Real>& B,
-        LowRank<Real>& C )
-{
-#ifndef RELEASE
-    CallStackEntry entry("hmat_tools::AdjointMultiply (F := D^H D)");
-#endif
-    TransposeMultiply( maxRank, alpha, A, B, C );
-}
-
-template<typename Real>
-void AdjointMultiply
 ( int maxRank, std::complex<Real> alpha,
   const Dense<std::complex<Real> >& A,
   const Dense<std::complex<Real> >& B,
@@ -540,42 +483,6 @@ void AdjointMultiply
     }
 }
 
-template<typename Real>
-void AdjointMultiply
-( int maxRank, Real alpha,
-  const Dense<Real>& A,
-  const Dense<Real>& B,
-  Real beta,
-  LowRank<Real>& C )
-{
-#ifndef RELEASE
-    CallStackEntry entry("hmat_tools::AdjointMultiply (F := D^H D + F)");
-#endif
-    TransposeMultiply( maxRank, alpha, A, B, beta, C );
-}
-
-template<typename Real>
-void AdjointMultiply
-( int maxRank, std::complex<Real> alpha,
-  const Dense<std::complex<Real> >& A,
-  const Dense<std::complex<Real> >& B,
-  std::complex<Real> beta,
-        LowRank<std::complex<Real> >& C )
-{
-#ifndef RELEASE
-    CallStackEntry entry("hmat_tools::AdjointMultiply (F := D^H D + F)");
-#endif
-    typedef std::complex<Real> Scalar;
-
-    // D := alpha A^H B + beta C
-    Dense<Scalar> D;
-    AdjointMultiply( alpha, A, B, D );
-    Update( beta, C, Scalar(1), D );
-
-    // Force D into a low-rank matrix of rank 'maxRank'
-    Compress( maxRank, D, C );
-}
-
 // Dense C := alpha A^H B
 template void AdjointMultiply
 ( float alpha, const Dense<float>& A,
@@ -616,25 +523,6 @@ template void AdjointMultiply
 template void AdjointMultiply
 ( float alpha, const Dense<float>& A,
                const LowRank<float>& B,
-                     Dense<float>& C );
-template void AdjointMultiply
-( double alpha, const Dense<double>& A,
-                const LowRank<double>& B,
-                      Dense<double>& C );
-template void AdjointMultiply
-( std::complex<float> alpha, const Dense<std::complex<float> >& A,
-                             const LowRank<std::complex<float> >& B,
-                                   Dense<std::complex<float> >& C );
-template void AdjointMultiply
-( std::complex<double> alpha,
-  const Dense<std::complex<double> >& A,
-  const LowRank<std::complex<double> >& B,
-        Dense<std::complex<double> >& C );
-
-// Form a dense matrix from a dense matrix times a low-rank matrix
-template void AdjointMultiply
-( float alpha, const Dense<float>& A,
-               const LowRank<float>& B,
   float beta,        Dense<float>& C );
 template void AdjointMultiply
 ( double alpha, const Dense<double>& A,
@@ -655,25 +543,6 @@ template void AdjointMultiply
 template void AdjointMultiply
 ( float alpha, const LowRank<float>& A,
                const Dense<float>& B,
-                     Dense<float>& C );
-template void AdjointMultiply
-( double alpha, const LowRank<double>& A,
-                const Dense<double>& B,
-                      Dense<double>& C );
-template void AdjointMultiply
-( std::complex<float> alpha, const LowRank<std::complex<float> >& A,
-                             const Dense<std::complex<float> >& B,
-                                   Dense<std::complex<float> >& C );
-template void AdjointMultiply
-( std::complex<double> alpha,
-  const LowRank<std::complex<double> >& A,
-  const Dense<std::complex<double> >& B,
-        Dense<std::complex<double> >& C );
-
-// Form a dense matrix from a low-rank matrix times a dense matrix
-template void AdjointMultiply
-( float alpha, const LowRank<float>& A,
-               const Dense<float>& B,
   float beta,        Dense<float>& C );
 template void AdjointMultiply
 ( double alpha, const LowRank<double>& A,
@@ -688,26 +557,6 @@ template void AdjointMultiply
   const LowRank<std::complex<double> >& A,
   const Dense<std::complex<double> >& B,
   std::complex<double> beta,
-        Dense<std::complex<double> >& C );
-
-// Form a dense matrix from the product of two low-rank matrices
-template void AdjointMultiply
-( float alpha, const LowRank<float>& A,
-               const LowRank<float>& B,
-                     Dense<float>& C );
-template void AdjointMultiply
-( double alpha, const LowRank<double>& A,
-                const LowRank<double>& B,
-                      Dense<double>& C );
-template void AdjointMultiply
-( std::complex<float> alpha,
-  const LowRank<std::complex<float> >& A,
-  const LowRank<std::complex<float> >& B,
-        Dense<std::complex<float> >& C );
-template void AdjointMultiply
-( std::complex<double> alpha,
-  const LowRank<std::complex<double> >& A,
-  const LowRank<std::complex<double> >& B,
         Dense<std::complex<double> >& C );
 
 // Update a dense matrix from the product of two low-rank matrices
@@ -790,54 +639,6 @@ template void AdjointMultiply
 ( std::complex<double> alpha,
   const LowRank<std::complex<double> >& A,
   const Dense<std::complex<double> >& B,
-        LowRank<std::complex<double> >& C );
-
-// Generate a low-rank matrix from the product of two dense matrices
-template void AdjointMultiply
-( int maxRank, float alpha,
-  const Dense<float>& A,
-  const Dense<float>& B,
-        LowRank<float>& C );
-template void AdjointMultiply
-( int maxRank, double alpha,
-  const Dense<double>& A,
-  const Dense<double>& B,
-        LowRank<double>& C );
-template void AdjointMultiply
-( int maxRank, std::complex<float> alpha,
-  const Dense<std::complex<float> >& A,
-  const Dense<std::complex<float> >& B,
-        LowRank<std::complex<float> >& C );
-template void AdjointMultiply
-( int maxRank, std::complex<double> alpha,
-  const Dense<std::complex<double> >& A,
-  const Dense<std::complex<double> >& B,
-        LowRank<std::complex<double> >& C );
-
-// Update a low-rank matrix from the product of two dense matrices
-template void AdjointMultiply
-( int maxRank, float alpha,
-  const Dense<float>& A,
-  const Dense<float>& B,
-  float beta,
-        LowRank<float>& C );
-template void AdjointMultiply
-( int maxRank, double alpha,
-  const Dense<double>& A,
-  const Dense<double>& B,
-  double beta,
-        LowRank<double>& C );
-template void AdjointMultiply
-( int maxRank, std::complex<float> alpha,
-  const Dense<std::complex<float> >& A,
-  const Dense<std::complex<float> >& B,
-  std::complex<float> beta,
-        LowRank<std::complex<float> >& C );
-template void AdjointMultiply
-( int maxRank, std::complex<double> alpha,
-  const Dense<std::complex<double> >& A,
-  const Dense<std::complex<double> >& B,
-  std::complex<double> beta,
         LowRank<std::complex<double> >& C );
 
 } // namespace hmat_tools
