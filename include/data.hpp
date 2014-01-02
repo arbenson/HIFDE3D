@@ -1,10 +1,10 @@
 #ifndef DATA_HPP_
 #define DATA_HPP_
 
-#include "dense.hpp"
+#include "dmhm/core/dense.hpp"
 
 // Faces of a cube
-enum class Face {TOP, BOTTOM, RIGHT, LEFT, FRONT, BACK};
+enum Face {TOP=0, BOTTOM, RIGHT, LEFT, FRONT, BACK};
 
 class IndexData {
 public:

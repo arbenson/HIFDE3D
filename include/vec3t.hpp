@@ -126,6 +126,10 @@ template <class F> inline Vec3T<F> operator* (const Vec3T<F>& a, F scl) {
 template <class F> inline Vec3T<F> operator/ (const Vec3T<F>& a, F scl) {
     return Vec3T<F>(a[0] / scl, a[1] / scl, a[2] / scl);
 }
+template <class F> inline Vec3T<F> operator+ (const Vec3T<F>& a, F scl) {
+    return Vec3T<F>(a[0] + scl, a[1] + scl, a[2] + scl);
+}
+
 template <class F> inline F operator* (const Vec3T<F>& a, const Vec3T<F>& b) {
     F sum = F(0); 
     sum += a(0) * b(0);
@@ -142,6 +146,15 @@ template <class F> inline Vec3T<F> operator^ (const Vec3T<F>& a, const Vec3T<F>&
 template <class F> inline Vec3T<F> cross (const Vec3T<F>& a, const Vec3T<F>& b) { 
     return a^b; 
 }
+
+//-------------New operations
+template <class F> inline Vec3T<F> vec3max(const Vec3T<F>& a, F scl) {
+    return Vec3T<F>(std::max(a[0], scl), std::max(a[1], scl), std::max(a[2], scl));
+}
+template <class F> inline Vec3T<F> vec3min(const Vec3T<F>& a, F scl) {
+    return Vec3T<F>(std::min(a[0], scl), std::min(a[1], scl), std::min(a[2], scl));
+}
+
 
 //-------------ew NUMERICAL OPS
 template <class F> inline Vec3T<F> ewmin(const Vec3T<F>& a, const Vec3T<F>& b) {

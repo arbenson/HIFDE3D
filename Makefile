@@ -2,7 +2,7 @@ LIBS = -llapack -lblas -lm
 AR = ar
 ARFLAGS = rc
 CXX = g++
-CXXFLAGS = -g -O3 -C11
+CXXFLAGS = -g -O3 -W -Wall -Wextra -pedantic #-std=c++0x
 LDFLAGS = ${LIBS}
 RANLIB = ranlib
 

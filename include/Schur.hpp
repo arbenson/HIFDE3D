@@ -2,8 +2,9 @@
 #define SCHUR_HPP_
 
 #include "data.hpp"
-#include "dense.hpp"
-#include "sparse.hpp"
+#include "dmhm/core/dense.hpp"
+#include "dmhm/core/hmat_tools.hpp"
+#include "dmhm/core/sparse.hpp"
 
 #include <vector>
 
@@ -32,7 +33,7 @@ void Schur(dmhm::Dense<Scalar>& matrix, FactorData<Scalar>& data) {
     DenseSubmatrix(matrix, DOF_set, DOF_set, data.A22_inv());
     // TODO: probably faster to copy A22 into A22_inv, rather than reading
     // from the matrix again
-    Invert(data.A22_inv());
+    dmhm::hmat_tools::Invert(data.A22_inv());
 
     // X = A_22^{-1}A_{21}
     // S = -A_{12}A_22^{-1}A_{21} = -A_{12}X
@@ -41,9 +42,9 @@ void Schur(dmhm::Dense<Scalar>& matrix, FactorData<Scalar>& data) {
     // A_{11}^{-1}.
 
     data.X_mat().Resize(data.A22_inv().Height(), A21.Width());
-    Multiply(1.0, data.A22_inv(), A21, data.X_mat());
+    dmhm::hmat_tools::Multiply(1.0, data.A22_inv(), A21, data.X_mat());
     data.Schur_comp().Resize(A12.Height(), data.X_mat().Width());
-    Multiply(-1.0, A12, data.X_mat(), data.Schur_comp());
+    dmhm::hmat_tools::Multiply(-1.0, A12, data.X_mat(), data.Schur_comp());
 }
 
 // Extract a dense submatrix from a sparse matrix.
@@ -55,13 +56,13 @@ void Schur(dmhm::Dense<Scalar>& matrix, FactorData<Scalar>& data) {
 // submatrix (out): sp_matrix(rows, cols) as a dense matrix
 // return value: 0 on failure, 1 on success
 template <typename Scalar>
-int DenseSubmatrix(dmhm::Sparse<Scalar>& matrix, const std::vector<int>& rows,
-		   const std::vector<int>& cols, const dmhm::Dense<Scalar>& submatrix) {
+void DenseSubmatrix(dmhm::Sparse<Scalar>& matrix, const std::vector<int>& rows,
+                    const std::vector<int>& cols, const dmhm::Dense<Scalar>& submatrix) {
     submatrix.Resize(rows.size(), cols.size());
     for (int i = 0; i < rows.size(); ++i) {
-	for (int j = 0; i < cols.size(); ++i) {
-	    submatrix.Set(i, j, matrix.Get(rows[i], cols[j]));
-	}
+        for (int j = 0; i < cols.size(); ++i) {
+            submatrix.Set(i, j, matrix.Get(rows[i], cols[j]));
+        }
     }
 }
 
@@ -74,13 +75,13 @@ int DenseSubmatrix(dmhm::Sparse<Scalar>& matrix, const std::vector<int>& rows,
 // submatrix (out): sp_matrix(rows, cols) as a dense matrix
 // return value: 0 on failure, 1 on success
 template <typename Scalar>
-int DenseSubmatrix(dmhm::Dense<Scalar>& matrix, const std::vector<int>& rows,
-		   const std::vector<int>& cols, const dmhm::Dense<Scalar>& submatrix) {
+void DenseSubmatrix(dmhm::Dense<Scalar>& matrix, const std::vector<int>& rows,
+                    const std::vector<int>& cols, const dmhm::Dense<Scalar>& submatrix) {
     submatrix.Resize(rows.size(), cols.size());
     for (int i = 0; i < rows.size(); ++i) {
-	for (int j = 0; i < cols.size(); ++i) {
-	    submatrix.Set(i, j, matrix.Get(rows[i], cols[j]));
-	}
+        for (int j = 0; i < cols.size(); ++i) {
+            submatrix.Set(i, j, matrix.Get(rows[i], cols[j]));
+        }
     }
 }
 

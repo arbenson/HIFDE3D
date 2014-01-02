@@ -10,9 +10,6 @@
 #ifndef DMHM_DENSE_HPP
 #define DMHM_DENSE_HPP 1
 
-#include "tools.hpp"
-
-#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>

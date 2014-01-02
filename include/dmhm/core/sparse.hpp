@@ -10,8 +10,6 @@
 #ifndef DMHM_SPARSE_MATRIX_HPP
 #define DMHM_SPARSE_MATRIX_HPP 1
 
-#include "vector.hpp"
-
 namespace dmhm {
 
 // A simple Compressed Sparse Row (CSR) data structure
