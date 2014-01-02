@@ -10,7 +10,7 @@
 #ifndef DMHM_DENSE_HPP
 #define DMHM_DENSE_HPP 1
 
-#include "tools.hpp"
+#include "dmhm/core/environment.hpp"
 
 #include <iostream>
 #include <stdexcept>

@@ -2,34 +2,33 @@ LIBS = -llapack -lblas -lm
 AR = ar
 ARFLAGS = rc
 CXX = g++
-CXXFLAGS = -g -O3 -W -Wall -Wextra -pedantic #-std=c++0x
+CXXFLAGS = -g -W -Wall #-Wextra -pedantic
 LDFLAGS = ${LIBS}
 RANLIB = ranlib
+
+DEFINES = -DRESTRICT=__restrict__
 
 # default rule
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(DEFINES) -Iinclude -c $< -o $@
 
 HIF_SRC = src/global.cpp \
-           src/main.cpp \
-           src/ID.cpp
+          src/main.cpp
 
 HMAT_SRC = src/hmat_tools/Add.cpp \
-           src/hmat_tools/AdjointMultiplyMatrix.cpp \
-           src/hmat_tools/AdjointMultiplyVector.cpp \
            src/hmat_tools/Compress.cpp \
-           src/hmat_tools/Invert.cpp \
+           src/hmat_tools/Update.cpp \
+           src/hmat_tools/MultiplyVector.cpp \
+           src/hmat_tools/AdjointMultiplyVector.cpp \
+           src/hmat_tools/MultiplyTranspose.cpp \
            src/hmat_tools/MultiplyAdjoint.cpp \
            src/hmat_tools/MultiplyMatrix.cpp \
-           src/hmat_tools/MultiplyTranspose.cpp \
-           src/hmat_tools/MultiplyVector.cpp \
-           src/hmat_tools/TransposeMultiplyMatrix.cpp \
            src/hmat_tools/TransposeMultiplyVector.cpp \
-           src/hmat_tools/Update.cpp
+           src/hmat_tools/TransposeMultiplyMatrix.cpp \
+           src/hmat_tools/AdjointMultiplyMatrix.cpp \
+           src/hmat_tools/Invert.cpp
 
 LIB_SRC = $(HMAT_SRC) $(HIF_SRC)
-
-
 LIB_OBJ = $(LIB_SRC:.cpp=.o)
 
 libhifde.a: ${LIB_OBJ}
@@ -41,7 +40,7 @@ all: src/main.o libhifde.a
 
 #------------------------------------------------------
 clean:
-	rm -rf *~ src/*.d src/*.o *.a test
+	rm -rf *~ src/*.d src/*.o src/hmat_tools/*.o *.a test
 
 tags:
 	etags include/*.hpp src/*.cpp

@@ -1,6 +1,8 @@
 #ifndef _NUMTNS_HPP_
 #define _NUMTNS_HPP_
 
+#include "tools.hpp"
+
 template <class F>
 class NumTns {
 public:

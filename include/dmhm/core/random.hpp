@@ -11,6 +11,7 @@
 #define DMHM_RANDOM_HPP 1
 
 #include "dmhm/core/environment.hpp"
+#include "dmhm/core/vector.hpp"
 
 namespace dmhm {
 

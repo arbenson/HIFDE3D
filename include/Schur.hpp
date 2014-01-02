@@ -42,9 +42,9 @@ void Schur(dmhm::Dense<Scalar>& matrix, FactorData<Scalar>& data) {
     // A_{11}^{-1}.
 
     data.X_mat().Resize(data.A22_inv().Height(), A21.Width());
-    dmhm::hmat_tools::Multiply(1.0, data.A22_inv(), A21, data.X_mat());
+    dmhm::hmat_tools::Multiply(Scalar(1), data.A22_inv(), A21, data.X_mat());
     data.Schur_comp().Resize(A12.Height(), data.X_mat().Width());
-    dmhm::hmat_tools::Multiply(-1.0, A12, data.X_mat(), data.Schur_comp());
+    dmhm::hmat_tools::Multiply(Scalar(-1), A12, data.X_mat(), data.Schur_comp());
 }
 
 // Extract a dense submatrix from a sparse matrix.

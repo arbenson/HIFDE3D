@@ -221,7 +221,7 @@ void HIFFactor<Scalar>::SchurAfterID(FactorData<Scalar>& data) {
     int size = global_inds.size();
     dmhm::Dense<Scalar> Rot(size, size, dmhm::GENERAL);
     for (int i = 0; i < size; ++i) {
-        Rot(i, i) = 1.0;
+        Rot(i, i) = Scalar(1);
     }
 
     // Fill in with W
@@ -234,10 +234,10 @@ void HIFFactor<Scalar>::SchurAfterID(FactorData<Scalar>& data) {
     }
 
     dmhm::Dense<Scalar> tmp(submat.Height(), Rot.Width(), dmhm::GENERAL);
-    dmhm::hmat_tools::Multiply(1.0, submat, Rot, tmp);
+    dmhm::hmat_tools::Multiply(Scalar(1), submat, Rot, tmp);
     
     dmhm::Dense<Scalar> result(Rot.Height(), tmp.Width(), dmhm::GENERAL);
-    dmhm::hmat_tools::AdjointMultiply(1.0, Rot, tmp, result);
+    dmhm::hmat_tools::AdjointMultiply(Scalar(1), Rot, tmp, result);
     Schur(result, data);
 }
 
@@ -406,7 +406,7 @@ int HIFFactor<Scalar>::N() { return N_; }
 template <typename Scalar>
 void HIFFactor<Scalar>::set_P(int P) {
     assert(P > 0);
-    P_ = N;
+    P_ = P;
 }
 
 template <typename Scalar>
