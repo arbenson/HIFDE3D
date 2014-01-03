@@ -65,6 +65,8 @@ public:
     dmhm::Dense<Scalar>& Schur_comp() { return Schur_comp_; }
     dmhm::Dense<Scalar>& W_mat() { return W_mat_; }
 
+    int NumDOFsEliminated() { return ind_data_.DOF_set().size(); }
+
     IndexData& ind_data() { return ind_data_; }
     void set_face(Face face) { face_ = face; }
     Face face() { return face_; }

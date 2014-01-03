@@ -84,7 +84,10 @@ private:
     // level (in): which level of the algorithm
     // data (out): fills in all factorization data needed for this DOF set
     //             for solves after factorization completes
-    void Skeletonize(Index3 cell_location, Face face, int level,
+    // return value: True if and only if the face was available for skeletonization.
+    //               For example, if cell_location = (0, 1, 2) and face = TOP, then
+    //               the return value is false.
+    bool Skeletonize(Index3 cell_location, Face face, int level,
                      FactorData<Scalar>& data);
 
     // Eliminate redundant DOFs via Schur complements after the ID has

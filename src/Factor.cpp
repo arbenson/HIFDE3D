@@ -1,6 +1,8 @@
 #include "Factor.hpp"
 #include "InterpDecomp.hpp"
 
+#include <iostream>
+
 template <typename Scalar>
 void HIFFactor<Scalar>::Initialize() {
     assert(N_ > 0);
@@ -116,10 +118,13 @@ void HIFFactor<Scalar>::SchurAfterID(FactorData<Scalar>& data) {
 }
 
 template <typename Scalar>
-void HIFFactor<Scalar>::Skeletonize(Index3 cell_location, Face face,
+bool HIFFactor<Scalar>::Skeletonize(Index3 cell_location, Face face,
                                     int level, FactorData<Scalar>& data) {
     SkelIndexData skel_data;
     InteriorFaceIndexData(cell_location, face, level, skel_data);
+    if (skel_data.global_cols().size() == 0) {
+	return false;    // No face here.
+    }
     
     dmhm::Dense<Scalar> submat;
     DenseSubmatrix(sp_matrix_, skel_data.global_rows(), skel_data.global_cols(), submat);
@@ -133,12 +138,13 @@ void HIFFactor<Scalar>::Skeletonize(Index3 cell_location, Face face,
     InterpDecomp(submat, data.W_mat(), data.ind_data().skeleton_set(),
                  data.ind_data().redundant_set(), epsilon_);
     SchurAfterID(data);
+    return true;
 }
 
 template <typename Scalar>
 void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
     std::vector< FactorData<Scalar> >& level_data = schur_level_data_[level];
-    int num_DOFs_eliminated;
+    int num_DOFs_eliminated = 0;
     for (int i = 0; i < cells_per_dir; ++i) {
         for (int j = 0; i < cells_per_dir; ++j) {
             for (int k = 0; i < cells_per_dir; ++k) {
@@ -152,16 +158,18 @@ void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
                 dmhm::Dense<Scalar> submat;
                 DenseSubmatrix(sp_matrix_, global_inds, global_inds, submat);
                 Schur(submat, factor_data);
-		num_DOFs_eliminated += factor_data.ind_data().DOF_set().size();
+		num_DOFs_eliminated += factor_data.NumDOFsEliminated();
             }
         }
     }
+    std::cout << "Level (" << level << ", Schur): "
+              << num_DOFs_eliminated << "DOFs eliminated" << std::endl;
 }
 
 template <typename Scalar>
 void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
     std::vector< FactorData<Scalar> >& level_data = skel_level_data_[level];
-    std::vector<Index3> eliminated_DOFs;
+    int num_DOFs_eliminated = 0;
     for (int i = 0; i < cells_per_dir; ++i) {
         for (int j = 0; i < cells_per_dir; ++j) {
             for (int k = 0; i < cells_per_dir; ++k) {
@@ -170,26 +178,50 @@ void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
                 // We only do half of the faces since each face is shared by
                 // two cells.  To keep indexing consistent, we do the top,
                 // front, and left faces.
-                Face face = TOP;
-                level_data.push_back(FactorData<Scalar>());
-                FactorData<Scalar>& top_data = level_data[level_data.size() - 1];
-                top_data.set_face(face);
-                Skeletonize(cell_location, face, level, top_data);
+		// TODO: abstract away these three calls
+		{
+		    Face face = TOP;
+		    level_data.push_back(FactorData<Scalar>());
+		    FactorData<Scalar>& top_data = level_data[level_data.size() - 1];
+		    top_data.set_face(face);
+		    bool ret = Skeletonize(cell_location, face, level, top_data);
+		    if (!ret) {
+			level_data.pop_back();
+		    }
+		    num_DOFs_eliminated += top_data.NumDOFsEliminated();
+		}
 
-                face = FRONT;
-                level_data.push_back(FactorData<Scalar>());
-                FactorData<Scalar>& front_data = level_data[level_data.size() - 1];
-                front_data.set_face(face);
-                Skeletonize(cell_location, face, level, front_data);
+		{
+		    Face face = FRONT;
+		    level_data.push_back(FactorData<Scalar>());
+		    FactorData<Scalar>& front_data = level_data[level_data.size() - 1];
+		    front_data.set_face(face);
+		    bool ret = Skeletonize(cell_location, face, level, front_data);
+		    if (!ret) {
+			level_data.pop_back();
+		    }
+		    num_DOFs_eliminated += front_data.NumDOFsEliminated();
+		}
 
-                face = LEFT;
-                level_data.push_back(FactorData<Scalar>());
-                FactorData<Scalar>& left_data = level_data[level_data.size() - 1];
-                left_data.set_face(face);
-                Skeletonize(cell_location, face, level, left_data);
+		{
+		    Face face = LEFT;
+		    level_data.push_back(FactorData<Scalar>());
+		    FactorData<Scalar>& left_data = level_data[level_data.size() - 1];
+		    left_data.set_face(face);
+		    bool ret = Skeletonize(cell_location, face, level, left_data);
+		    if (!ret) {
+			level_data.pop_back();
+		    }
+		    num_DOFs_eliminated += left_data.NumDOFsEliminated();
+		}
             }
         }
     }
+
+    size_t num_faces_total = 3 * (cells_per_dir - 1) * cells_per_dir * cells_per_dir;
+    assert(level_data.size() == num_faces_total);
+    std::cout << "Level (" << level << ", Skel): "
+              << num_DOFs_eliminated << "DOFs eliminated" << std::endl;
 }
 
 template <typename Scalar>
@@ -346,7 +378,7 @@ void HIFFactor<Scalar>::InteriorFaceDOFs(Index3 cell_location, Face face,
 
     case FRONT:
         {
-            int k = min_inds(k);
+            int k = min_inds(2);
             if (k == 0) {
                 return;  // No front face
             }
@@ -363,7 +395,7 @@ void HIFFactor<Scalar>::InteriorFaceDOFs(Index3 cell_location, Face face,
 
     case BACK:
         {
-            int k = max_inds(k);
+            int k = max_inds(2);
             if (k == N_) {
                 return;  // No back face
             }

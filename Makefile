@@ -2,15 +2,15 @@ LIBS = -llapack -lblas -lm
 AR = ar
 ARFLAGS = rc
 CXX = g++
-CXXFLAGS = -g -W -Wall #-Wextra -pedantic
+CXXFLAGS = -g -O3 -Wall -Wextra -pedantic
 LDFLAGS = ${LIBS}
 RANLIB = ranlib
-
 DEFINES = -DRESTRICT=__restrict__
+INCLUDES = include
 
 # default rule
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(DEFINES) -Iinclude -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(DEFINES) -I$(INCLUDES) -c $< -o $@
 
 HIF_SRC = src/global.cpp \
           src/InterpDecomp.cpp \
