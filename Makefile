@@ -14,6 +14,7 @@ DEFINES = -DRESTRICT=__restrict__
 
 HIF_SRC = src/global.cpp \
           src/InterpDecomp.cpp \
+          src/Factor.cpp \
           src/main.cpp
 
 HMAT_SRC = src/hmat_tools/Add.cpp \

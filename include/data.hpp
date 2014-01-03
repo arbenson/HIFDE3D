@@ -29,9 +29,12 @@ public:
     std::vector<int>& skeleton_set() { return DOF_set_interaction_; }
 
 private:
-    std::vector<int> global_inds_;
-    std::vector<int> DOF_set_;    
-    std::vector<int> DOF_set_interaction_;
+    std::vector<int> global_inds_;         // indices into N^3 x N^3 system
+    std::vector<int> DOF_set_;             // indices of global_inds_ corresponding
+                                           // to what is being eliminated
+    std::vector<int> DOF_set_interaction_; // indices of global_inds_ corresponding
+                                           // to non-zero entries of the matrix below
+                                           // global_inds_(DOF_set_).
 };
 
 class SkelIndexData {
@@ -62,6 +65,7 @@ public:
     dmhm::Dense<Scalar>& Schur_comp() { return Schur_comp_; }
     dmhm::Dense<Scalar>& W_mat() { return W_mat_; }
 
+    IndexData& ind_data() { return ind_data_; }
     void set_face(Face face) { face_ = face; }
     Face face() { return face_; }
 

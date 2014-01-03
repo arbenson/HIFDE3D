@@ -34,7 +34,7 @@ void InterpDecomp(dmhm::Dense<Scalar>& M, dmhm::Dense<Scalar>& W,
     std::vector<int> redundant;
 
     // Find which indices correspond to skeleton DOFs
-    double skel_tol = std::abs(M(0, 0)) * epsilon;
+    double skel_tol = std::abs(M.Get(0, 0)) * epsilon;
     for (int i = 0; i < M.Width(); ++i) {
         if (IsSkel(M, i, skel_tol)) {
             skeleton_cols.push_back(jpvt[i]);
@@ -49,13 +49,13 @@ void InterpDecomp(dmhm::Dense<Scalar>& M, dmhm::Dense<Scalar>& W,
     // TODO: Assuming that the diagonal of R is non-increasing, these
     //       formulations can be a bit cleaner.
     W.Resize(skel.size(), M.Width());
-    for (int m = 0; m < skel.size(); ++m) {
+    for (size_t m = 0; m < skel.size(); ++m) {
         int i = skel[m];
         for (int j = 0; j < W.Width(); ++j) {
             if (j < i) {
                 W.Set(i, j, 0);
             } else {
-                W.Set(i, j, M(i, j));
+                W.Set(i, j, M.Get(i, j));
             }
         }
     }
@@ -68,7 +68,7 @@ void InterpDecomp(dmhm::Dense<Scalar>& M, dmhm::Dense<Scalar>& W,
             if (j < i) {
                 R_skel.Set(i, j, 0);
             } else {
-                R_skel.Set(i, j, M(i, j));
+                R_skel.Set(i, j, M.Get(i, j));
             }
         }
     }
@@ -175,6 +175,25 @@ void TriangularSolveWrapper(dmhm::Dense<Scalar>& R, dmhm::Dense<Scalar>& B) {
 
 
 // Declarations of possible templated types
+template void InterpDecomp(dmhm::Dense<float>& M, dmhm::Dense<float>& W,
+			   std::vector<int>& skeleton_cols,
+                           std::vector<int>& redundant_cols,
+			   double epsilon);
+template void InterpDecomp(dmhm::Dense<double>& M, dmhm::Dense<double>& W,
+			   std::vector<int>& skeleton_cols,
+                           std::vector<int>& redundant_cols,
+			   double epsilon);
+template void InterpDecomp(dmhm::Dense< std::complex<float> >& M,
+                           dmhm::Dense< std::complex<float> >& W,
+			   std::vector<int>& skeleton_cols,
+                           std::vector<int>& redundant_cols,
+			   double epsilon);
+template void InterpDecomp(dmhm::Dense< std::complex<double> >& M,
+                           dmhm::Dense< std::complex<double> >& W,
+			   std::vector<int>& skeleton_cols,
+                           std::vector<int>& redundant_cols,
+			   double epsilon);
+
 template void PivotedQRWrapper(dmhm::Dense<float>& A, std::vector<int>& jpvt);
 template void PivotedQRWrapper(dmhm::Dense<double>& A, std::vector<int>& jpvt);
 template void PivotedQRWrapper(dmhm::Dense< std::complex<float> >& A,
