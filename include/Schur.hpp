@@ -47,25 +47,6 @@ void Schur(dmhm::Dense<Scalar>& matrix, FactorData<Scalar>& data) {
     dmhm::hmat_tools::Multiply(Scalar(-1), A12, data.X_mat(), data.Schur_comp());
 }
 
-// Extract a dense submatrix from a sparse matrix.
-// TODO: this function could be more efficient
-//
-// matrix (in): sparse matrix from which to extract entries
-// rows (in): row indices
-// cols (in): column indices
-// submatrix (out): sp_matrix(rows, cols) as a dense matrix
-// return value: 0 on failure, 1 on success
-template <typename Scalar>
-void DenseSubmatrix(dmhm::Sparse<Scalar>& matrix, const std::vector<int>& rows,
-                    const std::vector<int>& cols, const dmhm::Dense<Scalar>& submatrix) {
-    submatrix.Resize(rows.size(), cols.size());
-    for (int i = 0; i < rows.size(); ++i) {
-        for (int j = 0; i < cols.size(); ++i) {
-            submatrix.Set(i, j, matrix.Get(rows[i], cols[j]));
-        }
-    }
-}
-
 // Extract a dense submatrix from a dense matrix.
 // TODO: this function could be more efficient
 //
@@ -73,7 +54,6 @@ void DenseSubmatrix(dmhm::Sparse<Scalar>& matrix, const std::vector<int>& rows,
 // rows (in): row indices
 // cols (in): column indices
 // submatrix (out): sp_matrix(rows, cols) as a dense matrix
-// return value: 0 on failure, 1 on success
 template <typename Scalar>
 void DenseSubmatrix(dmhm::Dense<Scalar>& matrix, const std::vector<int>& rows,
                     const std::vector<int>& cols, const dmhm::Dense<Scalar>& submatrix) {
@@ -84,5 +64,17 @@ void DenseSubmatrix(dmhm::Dense<Scalar>& matrix, const std::vector<int>& rows,
         }
     }
 }
+
+// Extract a dense submatrix from a sparse matrix.
+// TODO: this function could be more efficient
+//
+// matrix (in): sparse matrix from which to extract entries
+// rows (in): row indices
+// cols (in): column indices
+// submatrix (out): sp_matrix(rows, cols) as a dense matrix
+template <typename Scalar>
+void DenseSubmatrix(dmhm::Sparse<Scalar>& matrix, const std::vector<int>& rows,
+                    const std::vector<int>& cols, const dmhm::Dense<Scalar>& submatrix);
+
 
 #endif  // ifndef SCHUR_HPP_

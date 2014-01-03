@@ -361,7 +361,22 @@ void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
 
 template <typename Scalar>
 void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
+    std::vector< FactorData<Scalar> >& level_data;
+    if (is_skel) {
+	level_data = skel_level_data_[level];
+    } else {
+	level_data = schur_level_data_[level];
+    }
+
     // TODO: implement this function
+
+    // Loop over all factor data
+    //    Extract Schur complement information
+    // Update sparse matrix
+
+    // Loop over all data
+    //   Get eliminated DOFs
+    // Set entries in sparse matrix corresponding to eliminated DOFs to zero
     return;
 }
 
