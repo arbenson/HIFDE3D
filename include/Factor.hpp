@@ -20,17 +20,22 @@ public:
     HIFFactor() {}
     ~HIFFactor() {}
 
+    // Initialize the factorization.  This function should be called
+    // after the sparse matrix has been formatted and before Factor()
+    // is called.
+    void Initialize();
+
     // Form factorization of the matrix via HIF.
     // The matrix, number of discretiztaion points (N), width at lowest
     // level (P), and target accuracy (epsilon) must already be be provided.
     void Factor();
 
     // Convert a linear index to a tensor index. The tensor is of size
-    // N x N x N, where N is the number of discretization points per direction.
+    // N x N x N, where N is one plus the number of discretization points per direction.
     Index3 Linear2TensorInd(int ind);
 
     // Convert a tensor index to a linear index. The tensor is of size
-    // N x N x N, where N is the number of discretization points per direction.
+    // N x N x N, where N is one plus the number of discretization points per direction.
     int Tensor2LinearInd(Index3 ind);
 
     void set_N(int N);
@@ -42,6 +47,8 @@ public:
     void set_epsilon(double epsilon);
     double epsilon();
 
+    // We assume that any (i, j, k) index with a i, j, or k = 0 is _zero_
+    // This is the zero boundary conditions
     dmhm::Sparse<Scalar>& sp_matrix();
 
 
@@ -78,7 +85,7 @@ private:
     // data (out): fills in all factorization data needed for this DOF set
     //             for solves after factorization completes
     void Skeletonize(Index3 cell_location, Face face, int width,
-                         FactorData<Scalar>& data);
+                     FactorData<Scalar>& data);
 
     // Eliminate redundant DOFs via Schur complements after the ID has
     // completed.
@@ -110,8 +117,7 @@ private:
     void InteriorCellIndexData(Index3 cell_location, int level, IndexData& data);
     
     // For a given cell location, level, and face, determine the indices of the
-    // DOFs interior to the face.  These DOFs are skeletonized.  Also, determine
-    // the interaction of the interior face DOFs.
+    // DOFs interior to the face and their interactions.  These DOFs are skeletonized.
     //
     // cell_location (in): 3-tuple of cell location
     // Face (in): which face
@@ -119,6 +125,16 @@ private:
     // data (out): fills global row and global column indices for skeletonization
     void InteriorFaceIndexData(Index3 cell_location, Face face, int level,
                                SkelIndexData& data);
+
+    // For a given cell location, level, and face, determine the indices of the
+    // DOFs interior to the face.
+    //
+    // cell_location (in): 3-tuple of cell location
+    // Face (in): which face
+    // level (in): level of the cell location
+    // face_inds (out): adds indices of remaining face DOFs.
+    void InteriorFaceDOFs(Index3 cell_location, Face face,
+                          int level, std::vector<int>& face_inds);
 
     // Determine whether an index is on the interior of a cell.
     //
@@ -138,6 +154,12 @@ private:
     // ind (in): index
     bool IsInterior(int level, int a);
 
+    // Determine whether an index corresponds to a remaining DOF
+    //
+    // ind (in): 3-tuple index of DOF
+    // return value: true if and only if the index corresponds to a remaining DOF
+    bool IsRemainingDOF(Index3 ind);
+
     // DATA
     dmhm::Sparse<Scalar> sp_matrix_;
     int N_;
@@ -147,6 +169,26 @@ private:
     std::vector< std::vector< FactorData<Scalar> > > schur_level_data_;
     std::vector< std::vector< FactorData<Scalar> > > skel_level_data_;
 };
+
+template <typename Scalar>
+void HIFFactor<Scalar>::Initialize() {
+    assert(N_ > 0);
+    int NC = N_ + 1;
+    remaining_DOFs_.resize(NC, NC, NC);
+
+    // Any zero index is zero (vanishing boundary conditions)
+    for (int i = 0; i < NC; ++i) {
+        for (int j = 0; j < NC; ++j) {
+            for (int k = 0; k < NC; ++k) {
+                if (i == 0 || j == 0 || k == 0) {
+                    remaining_DOFs_(i, j, k) = 0;
+                } else {
+                    remaining_DOFs_(i, j, k) = 1;
+                }
+            }
+        }
+    }
+}
 
 template <typename Scalar>
 void HIFFactor<Scalar>::Factor() {
@@ -169,10 +211,11 @@ void HIFFactor<Scalar>::Factor() {
 
 template <typename Scalar>
 Index3 HIFFactor<Scalar>::Linear2TensorInd(int ind) {
-    int i = ind % N_;
-    int j = ((ind - i) % (N_ * N_)) / N_;
-    int k = (ind - i - N_ * j) / (N_ * N_);
-    assert(0 <= i && i < N_ && 0 <= j && j < N_ && 0 <= k && k < N_);
+    int NC = N_ + 1;
+    int i = ind % NC;
+    int j = ((ind - i) % (NC * NC)) / NC;
+    int k = (ind - i - NC * j) / (NC * NC);
+    assert(0 <= i && i <= N_ && 0 <= j && j <= N_ && 0 <= k && k <= N_);
     return Index3(i, j, k);
 }
 
@@ -181,7 +224,7 @@ int HIFFactor<Scalar>::Tensor2LinearInd(Index3 ind) {
     int i = ind(0);
     int j = ind(1);
     int k = ind(2);
-    assert(0 <= i && i < N_ && 0 <= j && j < N_ && 0 <= k && k < N_);
+    assert(0 <= i && i <= N_ && 0 <= j && j <= N_ && 0 <= k && k <= N_);
     return i + N * j + (N * N) * k;
 }
 
@@ -197,8 +240,8 @@ void HIFFactor<Scalar>::UpdateRemainingDOFs(int level, bool is_skel) {
         level_data = schur_level_data_[level];
     }
     for (int i = 0; i < level_data.Size(); ++i) {
-	std::vector<int>& DOF_set = level_data[i].ind_data().DOF_set();
-	std::vector<int>& global_inds = level_data[i].ind_data().global_inds();
+        std::vector<int>& DOF_set = level_data[i].ind_data().DOF_set();
+        std::vector<int>& global_inds = level_data[i].ind_data().global_inds();
         for (int j = 0; j < DOF_set.size(); ++j) {
             eliminated_DOFs.push_back(global_inds[DOF_set[j]]);
         }
@@ -243,7 +286,7 @@ void HIFFactor<Scalar>::SchurAfterID(FactorData<Scalar>& data) {
 
 template <typename Scalar>
 void HIFFactor<Scalar>::Skeletonize(Index3 cell_location, Face face,
-                                        int width, FactorData<Scalar>& data) {
+                                    int width, FactorData<Scalar>& data) {
     SkelIndexData skel_data;
     InteriorFaceIndexData(cell_location, face, width, skel_data);
     
@@ -267,7 +310,7 @@ void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
     for (int i = 0; i < cells_per_dir; ++i) {
         for (int j = 0; i < cells_per_dir; ++j) {
             for (int k = 0; i < cells_per_dir; ++k) {
-		FactorData<Scalar> tmp;
+                FactorData<Scalar> tmp;
                 level_data.push_back(tmp);
                 FactorData<Scalar>& factor_data = level_data[level_data.size() - 1];
                 InteriorCellIndexData(Index3(i, j, k), level, factor_data.ind_data());
@@ -292,8 +335,8 @@ void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
                 Index3 cell_location(i, j, k);
 
                 // We only do half of the faces since each face is shared by
-                // two cells.  By arbitrary choice, we do the top, front, and
-                // right faces.
+                // two cells.  To keep indexing consistent, we do the top,
+                // front, and left faces.
                 Face face = TOP;
                 level_data.push_back(FactorData<Scalar>());
                 FactorData<Scalar>& top_data = level_data[level_data.size() - 1];
@@ -306,11 +349,11 @@ void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
                 front_data.set_face(face);
                 Skeletonize(face, cell_location, front_data);
 
-                face = RIGHT;
+                face = LEFT;
                 level_data.push_back(FactorData<Scalar>());
-                FactorData<Scalar>& right_data = level_data[level_data.size() - 1];
-                right_data.set_face(face);
-                Skeletonize(face, cell_location, right_data);
+                FactorData<Scalar>& left_data = level_data[level_data.size() - 1];
+                left_data.set_face(face);
+                Skeletonize(face, cell_location, left_data);
             }
         }
     }
@@ -325,7 +368,7 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
 template <typename Scalar>
 bool HIFFactor<Scalar>::IsInterior(int level, int a) {
     int width = pow2(level) * P_;
-    return (a == 0 || a == N_ - 1 || (a % width) != 0);
+    return (a > 0 || a  < N_ || (a % width) != 0);
 }
 
 
@@ -336,61 +379,253 @@ bool HIFFactor<Scalar>::IsFaceInterior(int level, Index3 ind) {
     int c_int = IsInterior(level, ind(2));
     return ((a_int && b_int && !c_int) ||
             (a_int && !b_int && c_int) ||
-	    (!a_int && b_int && c_int));
+            (!a_int && b_int && c_int));
 }
 
 template <typename Scalar>
 bool HIFFactor<Scalar>::IsCellInterior(int level, Index3 ind) {
     return IsInterior(level, ind(0)) &&
-           IsInterior(level, ind(1)) &&
-	   IsInterior(level, ind(2));
+        IsInterior(level, ind(1)) &&
+        IsInterior(level, ind(2));
 }
 
 template <typename Scalar>
 void HIFFactor<Scalar>::InteriorCellIndexData(Index3 cell_location, int level,
                                               IndexData& data) {
     int width = pow2(level) * P_;
-    Index3 min_inds = width * cell_location;
-    Index3 max_inds = vec3max(width * (cell_location + 1), N_ - 1);
+    Index3 min_inds = vec3max(width * cell_location, 1);
+    Index3 max_inds = vec3min(width * (cell_location + 1), N_);
     assert(min_inds <= max_inds);
-    assert(min_inds >= Index3(0, 0, 0));
 
     std::vector<int>& DOF_set = data.DOF_set();
     std::vector<int>& DOF_set_interaction = data.DOF_set_interaction();
-    for (int i = min_inds(0); i < max_inds(0); ++i) {
-        for (int j = min_inds(1); i < max_inds(1); ++j) {
-            for (int k = min_inds(2); i < max_inds(2); ++k) {
-		if (remaining_DOFs_(i, j, k)) {
-		    Index3 curr_ind(i, j, k);
-		    if (IsFaceInterior(level, curr_ind)) {
-			DOF_set_interaction.push_back(Tensor2LinearInd(curr_ind));
-		    } else if (IsCellInterior(level, curr_ind)) {
-			DOF_set.push_back(Tensor2LinearInd(curr_ind));
-		    }
-		}
+    for (int i = min_inds(0); i <= max_inds(0); ++i) {
+        for (int j = min_inds(1); i <= max_inds(1); ++j) {
+            for (int k = min_inds(2); i <= max_inds(2); ++k) {
+                Index3 curr_ind(i, j, k);
+                if (IsRemainingDOF(curr_ind)) {
+                    if (IsFaceInterior(level, curr_ind)) {
+                        DOF_set_interaction.push_back(Tensor2LinearInd(curr_ind));
+                    } else if (IsCellInterior(level, curr_ind)) {
+                        DOF_set.push_back(Tensor2LinearInd(curr_ind));
+                    }
+                }
             }
         }
     }
 }
 
 template <typename Scalar>
-void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
-                                              int level, SkelIndexData& data) {
-    // TODO: implement this function
+bool HIFFactor<Scalar>::IsRemainingDOF(Index3 ind) {
+    return remaining_DOFs_(ind(0), ind(1), ind(2));
+}
+
+template <typename Scalar>
+void HIFFactor<Scalar>::InteriorFaceDOFs(Index3 cell_location, Face face,
+                                         int level, std::vector<int>& face_inds) {
     int width = pow2(level) * P_;
-    /*
+    Index3 inds = cell_location * width;
+    Index3 min_inds = vec3max(width * cell_location, 1);
+    Index3 max_inds = vec3min(width * (cell_location + 1), N_);
+    assert(min_inds <= max_inds);
+    // TODO: abstract away some of the common pieces of code in the switch statement
     switch (face) {
     case TOP:
-	// first index is fixed
-	Index3 inds = cell_location * width;
-	int i = inds(0);
-	int j_min = inds(1);
-	int j_max = max(inds(1) + width, N - 1);
-	int k_min = inds(2);
-	int k_max = max(inds(2) + width, N - 1);
-	// face indices: (i, j_min:j_max, k_min:k_max)
+        {
+            int i = min_inds(0);
+            if (i == 1) {
+                return;  // No top face
+            }
+            for (int j = min_inds(1); j <= max_inds(1); ++j) {
+                for (int k = min_inds(2); k <= max_inds(2); ++k) {
+                    Index3 curr_ind = Index3(i, j, k);
+                    if (IsRemainingDOF(curr_ind) && IsFaceInterior(level, curr_ind)) {
+                        face_inds.push_back(Tensor2LinearInd(curr_ind));
+                    }
+                }
+            }
+        }
+        return;
+
+    case BOTTOM:
+        {
+            int i = max_inds(0);
+            if (i == N_) {
+                return;  // No bottom face
+            }
+            for (int j = min_inds(1); j <= max_inds(1); ++j) {
+                for (int k = min_inds(2); k <= max_inds(2); ++k) {
+                    Index3 curr_ind = Index3(i, j, k);
+                    if (IsRemainingDOF(curr_ind) && IsFaceInterior(level, curr_ind)) {
+                        face_inds.push_back(Tensor2LinearInd(curr_ind));
+                    }
+                }
+            }
+        }
+        return;
+
+    case LEFT:
+        {
+            int j = min_inds(1);
+            if (j == 1) {
+                return;  // No left face
+            }
+            for (int i = min_inds(0); i <= max_inds(0); ++i) {
+                for (int k = min_inds(2); k <= max_inds(2); ++k) {
+                    Index3 curr_ind = Index3(i, j, k);
+                    if (IsRemainingDOF(curr_ind) && IsFaceInterior(level, curr_ind)) {
+                        face_inds.push_back(Tensor2LinearInd(curr_ind));
+                    }
+                }
+            }
+        }
+        return;
+
+    case RIGHT:
+        {
+            int j = max_inds(1);
+            if (j == N_) {
+                return;  // No right face
+            }
+            for (int i = min_inds(0); i <= max_inds(0); ++i) {
+                for (int k = min_inds(2); k <= max_inds(2); ++k) {
+                    Index3 curr_ind = Index3(i, j, k);
+                    if (IsRemainingDOF(curr_ind) && IsFaceInterior(level, curr_ind)) {
+                        face_inds.push_back(Tensor2LinearInd(curr_ind));
+                    }
+                }
+            }
+        }
+        return;
+
+    case FRONT:
+        {
+            int k = min_inds(k);
+            if (k == 0) {
+                return;  // No front face
+            }
+            for (int i = min_inds(0); i <= max_inds(0); ++i) {
+                for (int j = min_inds(1); j <= max_inds(1); ++j) {
+                    Index3 curr_ind = Index3(i, j, k);
+                    if (IsRemainingDOF(curr_ind) && IsFaceInterior(level, curr_ind)) {
+                        face_inds.push_back(Tensor2LinearInd(curr_ind));
+                    }
+                }
+            }
+        }
+        return;
+
+    case BACK:
+        {
+            int k = max_inds(k);
+            if (k == N_) {
+                return;  // No back face
+            }
+            for (int i = min_inds(0); i <= max_inds(0); ++i) {
+                for (int j = min_inds(1); j <= max_inds(1); ++j) {
+                    Index3 curr_ind = Index3(i, j, k);
+                    if (IsRemainingDOF(curr_ind) && IsFaceInterior(level, curr_ind)) {
+                        face_inds.push_back(Tensor2LinearInd(curr_ind));
+                    }
+                }
+            }
+        }
+        return;
+
+    default:
+        // TODO: better error
+        assert(0);  // not a valid face
     }
-    */
+}
+
+template <typename Scalar>
+void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
+                                              int level, SkelIndexData& data) {
+    // TODO: When we loop over all cells, there is redundant computation.
+    //       Here, we just compute what we need for the given cell.
+    int width = pow2(level) * P_;
+    Index3 min_inds = vec3max(width * cell_location, 1);
+    Index3 max_inds = vec3min(width * (cell_location + 1), N_);
+    std::vector<int>& global_rows = data.global_rows();
+    std::vector<int>& global_cols = data.global_cols();
+
+    // TODO: abstract away some of the common pieces of code in the switch statement
+    switch (face) {
+    case TOP:
+        if (min_inds(0) == 1) {
+            return;  // no top face
+        }
+        // Columns correspond to the face we are dealing with
+        InteriorFaceDOFs(cell_location, TOP, level, global_cols);
+
+        // Rows are all possible neighbors of interior DOFs
+        // First, all interior faces for current box
+        InteriorFaceDOFs(cell_location, TOP, level, global_rows);
+        InteriorFaceDOFs(cell_location, BOTTOM, level, global_rows);
+        InteriorFaceDOFs(cell_location, LEFT, level, global_rows);
+        InteriorFaceDOFs(cell_location, RIGHT, level, global_rows);
+        InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
+        InteriorFaceDOFs(cell_location, BACK, level, global_rows);
+
+        // Now, get all in neighbor cell.
+        cell_location(0) -= 1;
+        InteriorFaceDOFs(cell_location, TOP, level, global_rows);
+        // BOTTOM has already been counted
+        InteriorFaceDOFs(cell_location, LEFT, level, global_rows);
+        InteriorFaceDOFs(cell_location, RIGHT, level, global_rows);
+        InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
+        InteriorFaceDOFs(cell_location, BACK, level, global_rows);
+
+    case LEFT:
+        if (min_inds(1) == 1) {
+            return;  // no left face
+        }
+        // Columns correspond to the face we are dealing with
+        InteriorFaceDOFs(cell_location, LEFT, level, global_cols);
+
+        // Rows are all possible neighbors of interior DOFs
+        // First, all interior faces for current box
+        InteriorFaceDOFs(cell_location, TOP, level, global_rows);
+        InteriorFaceDOFs(cell_location, BOTTOM, level, global_rows);
+        InteriorFaceDOFs(cell_location, LEFT, level, global_rows);
+        InteriorFaceDOFs(cell_location, RIGHT, level, global_rows);
+        InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
+        InteriorFaceDOFs(cell_location, BACK, level, global_rows);
+
+        // Now, get all in neighbor cell.
+        cell_location(1) -= 1;
+        InteriorFaceDOFs(cell_location, TOP, level, global_rows);
+        InteriorFaceDOFs(cell_location, BOTTOM, level, global_rows);
+        InteriorFaceDOFs(cell_location, LEFT, level, global_rows);
+        // RIGHT has already been counted
+        InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
+        InteriorFaceDOFs(cell_location, BACK, level, global_rows);
+
+    case FRONT:
+        if (min_inds(2) == 1) {
+            return;  // no front face
+        }
+        // Columns correspond to the face we are dealing with
+        InteriorFaceDOFs(cell_location, FRONT, level, global_cols);
+
+        // Rows are all possible neighbors of interior DOFs
+        // First, all interior faces for current box
+        InteriorFaceDOFs(cell_location, TOP, level, global_rows);
+        InteriorFaceDOFs(cell_location, BOTTOM, level, global_rows);
+        InteriorFaceDOFs(cell_location, LEFT, level, global_rows);
+        InteriorFaceDOFs(cell_location, RIGHT, level, global_rows);
+        InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
+        InteriorFaceDOFs(cell_location, BACK, level, global_rows);
+
+        // Now, get all in neighbor cell.
+        cell_location(2) -= 1;
+        InteriorFaceDOFs(cell_location, TOP, level, global_rows);
+        InteriorFaceDOFs(cell_location, BOTTOM, level, global_rows);
+        InteriorFaceDOFs(cell_location, LEFT, level, global_rows);
+        InteriorFaceDOFs(cell_location, RIGHT, level, global_rows);
+        InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
+        // BACK has already been counted
+    }
     return;
 }
 
