@@ -11,6 +11,7 @@
 #define DMHM_LAPACK_HPP 1
 
 #include "dmhm/config.h"
+#include "blas.hpp"
 #include <complex>
 #include <cstring>
 #include <sstream>

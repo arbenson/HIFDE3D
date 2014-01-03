@@ -13,6 +13,7 @@ DEFINES = -DRESTRICT=__restrict__
 	$(CXX) $(CXXFLAGS) $(DEFINES) -Iinclude -c $< -o $@
 
 HIF_SRC = src/global.cpp \
+          src/InterpDecomp.cpp \
           src/main.cpp
 
 HMAT_SRC = src/hmat_tools/Add.cpp \
@@ -36,11 +37,11 @@ libhifde.a: ${LIB_OBJ}
 	$(RANLIB) $@
 
 all: src/main.o libhifde.a
-	${CXX} -o $@ $^ ${LDFLAGS}
+	${CXX} -o hifde3d $^ ${LDFLAGS}
 
 #------------------------------------------------------
 clean:
-	rm -rf *~ src/*.d src/*.o src/hmat_tools/*.o *.a test
+	rm -rf *~ src/*.d src/*.o src/hmat_tools/*.o *.a hifde3d
 
 tags:
 	etags include/*.hpp src/*.cpp
