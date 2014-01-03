@@ -1,6 +1,3 @@
-#ifndef _VECMATOP_HPP_
-#define _VECMATOP_HPP_
-
 #include "dmhm/core/lapack.hpp"
 
 extern "C" {
@@ -197,4 +194,4 @@ template void TriangSolveWrapper(Dense< std::complex<float> >& R,
                                  Dense< std::complex<float> >& B);
 template void TriangSolveWrapper(Dense< std::complex<double> >& R,
                                  Dense< std::complex<double> >& B);
-#endif
+

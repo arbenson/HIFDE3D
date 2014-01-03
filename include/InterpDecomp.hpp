@@ -1,5 +1,5 @@
-#ifndef _ID_HPP_
-#define _ID_HPP_
+#ifndef INTERP_DECOMP_HPP_
+#define INTERP_DECOMP_HPP_
 
 #include "dense.hpp"
 
@@ -19,8 +19,8 @@
 // redundant_cols (out): list of redundant (non-skeleton) columns of the ID
 // epsilon (in): tolerance for the ID
 template <typename Scalar>
-int InterpDecomp(Dense<Scalar>& M, const Dense<Scalar>& W,
-		 std::vector<int>& skeleton_cols,
-		 std::vector<int>& redundant_cols, double epsilon);
+void InterpDecomp(Dense<Scalar>& M, Dense<Scalar>& W,
+                  std::vector<int>& skeleton_cols,
+                  std::vector<int>& redundant_cols, double epsilon);
 
-#endif  // _ID_HPP_
+#endif  // ifndef INTERP_DECOMP_HPP_
