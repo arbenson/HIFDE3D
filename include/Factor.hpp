@@ -4,6 +4,7 @@
 #include "data.hpp"
 #include "dmhm/core/dense.hpp"
 #include "dmhm/core/hmat_tools.hpp"
+#include "dmhm/core/vector.hpp"
 #include "NumTns.hpp"
 #include "schur.hpp"
 #include "dmhm/core/sparse.hpp"
