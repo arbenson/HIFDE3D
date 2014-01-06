@@ -2,6 +2,14 @@
 #include "data.hpp"
 #include "dmhm/core/vector.hpp"
 
+// Obtain u_skel = u(skel), where skel is the set of skeleton DOFs.
+// Here, 'skeleton DOFs' refers to DOFs _not_ being eliminated.
+// The skeleton points could be the interior of faces _or_ the skeleton
+// points from skeletonization.
+//
+// u (in): vector of size N^3
+// data (in): factor data that contains the skeleton indices
+// skel_vec (out): u at the skeleton points
 template <typename Scalar>
 void GetSkeletonVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
                        dmhm::Vector<Scalar>& skel_vec) {
@@ -13,6 +21,11 @@ void GetSkeletonVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
     }
 }
 
+// Obtain u_red = u(red), where red is the set of redundant DOFs.
+//
+// u (in): vector of size N^3
+// data (in): factor data that contains the redundant indices
+// skel_vec (out): u at the skeleton points
 template <typename Scalar>
 void GetRedundantVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
                         dmhm::Vector<Scalar>& red_vec) {
@@ -24,6 +37,11 @@ void GetRedundantVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
     }
 }
 
+// Copy the skeleton vector back into the global vector, u.
+//
+// u (out): vector of size N^3 that gets updated
+// data (in): factor data containing skeleton indices
+// skel_vec (in): u at the skeleton points, after updating
 template <typename Scalar>
 void CopySkeletonVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
                         dmhm::Vector<Scalar>& skel_vec) {
@@ -35,6 +53,11 @@ void CopySkeletonVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
     }
 }
 
+// Copy the redundant vector back into the global vector, u.
+//
+// u (out): vector of size N^3 that gets updated
+// data (in): factor data containing redundant indices
+// red_vec (in): u at the redundant points, after updating
 template <typename Scalar>
 void CopyRedundantVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
                          dmhm::Vector<Scalar>& red_vec) {
@@ -46,6 +69,24 @@ void CopyRedundantVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
     }
 }
 
+// u_skel := alpha op(A) * u_red + u_skel
+//
+// op(A) is either A or A^H, dictated by the input 'adjoint'
+// alpha is plus or minus 1, dictated by the input 'negative'.
+// A is either data.W_mat() (default) or data.X_mat() (dictated by the input
+// 'is_X' set to True)
+// This function updates the entries of u at the skeleton points.
+//
+// u (in): vector or right-hand-side
+// data (in): factorization data that stores op(A)
+// u_skel (in): u at the skeleton points, i.e., the DOFs remaining.
+//              This is not necessarily due to skeletonization.  u_skel
+//              could correspond to the interior of faces in the Schur
+//              factorization _or_ the skeleton points in skeletonization.
+// u_red (in): u at the redundant points, i.e., the DOFs being eliminated.
+// adjoint (in): if true, op(A) = A^H; otherwise, op(A) = A
+// negative (in): if true, alpha = -1; otherwise, alpha = 1
+// is_X (in): if true, A = data.X_mat(); otherwise, A = data.W_mat()
 template <typename Scalar>
 void UpdateSkeleton(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
                     dmhm::Vector<Scalar>& u_skel, dmhm::Vector<Scalar>& u_red, 
@@ -66,6 +107,24 @@ void UpdateSkeleton(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
     CopySkeletonVector(u, data, u_skel);
 }
 
+// u_red := alpha op(A) * u_skel + u_red
+//
+// op(A) is either A or A^H, dictated by the input 'adjoint'
+// alpha is plus or minus 1, dictated by the input 'negative'.
+// A is either data.W_mat() (default) or data.X_mat() (dictated by the input
+// 'is_X' set to True)
+// This function updates the entries of u at the redundant points.
+//
+// u (in): vector or right-hand-side
+// data (in): factorization data that stores op(A)
+// u_skel (in): u at the skeleton points, i.e., the DOFs remaining.
+//              This is not necessarily due to skeletonization.  u_skel
+//              could correspond to the interior of faces in the Schur
+//              factorization _or_ the skeleton points in skeletonization.
+// u_red (in): u at the redundant points, i.e., the DOFs being eliminated.
+// adjoint (in): if true, op(A) = A^H; otherwise, op(A) = A
+// negative (in): if true, alpha = -1; otherwise, alpha = 1
+// is_X (in): if true, A = data.X_mat(); otherwise, A = data.W_mat()
 template <typename Scalar>
 void UpdateRedundant(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
                      dmhm::Vector<Scalar>& u_skel, dmhm::Vector<Scalar>& u_red, 
@@ -86,6 +145,11 @@ void UpdateRedundant(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
     CopyRedundantVector(u, data, u_red);
 }
 
+// Apply A_{22} or A_{22}^{-1} to the redundant DOFs.
+// 
+// u (out): vector that gets updated 
+// data (in): factorization data that contains the redundant indices, A_{22}, and A_{22}^{-1}
+// inverse (in): if true, applies A_{22}^{-1}; otherwise, applies A_{22}
 template <typename Scalar>
 void ApplyA22(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data, bool inverse) {
     dmhm::Vector<Scalar> u_red;
@@ -114,7 +178,6 @@ void HIFFactor<Scalar>::Apply(dmhm::Vector<Scalar>& u, bool inverse) {
             if (inverse) {
                 // u_skel := - X^H * u_red + u_skel
                 UpdateSkeleton(u, data, u_skel, u_red, true, true, true);
-                ;
             } else {
                 // u_red := X * u_skel + u_red
                 UpdateRedundant(u, data, u_skel, u_red, false, false, true);
