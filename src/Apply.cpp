@@ -18,7 +18,7 @@ void GetRedundantVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
                         dmhm::Vector<Scalar>& red_vec) {
     std::vector<int> global_inds = data.global_inds();
     std::vector<int> red_inds = data.redundant_set();
-    red_vec.Resize(skel_inds.size());
+    red_vec.Resize(red_inds.size());
     for (size_t i = 0; i < red_inds.size(); ++i) {
         red_vec.Set(i, u[global_inds[red_inds[i]]]);
     }
@@ -70,7 +70,7 @@ void UpdateSkeleton(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
 template <typename Scalar>
 void UpdateRedundant(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
 		     dmhm::Vector<Scalar>& u_skel, dmhm::Vector<Scalar>& u_red, 
-		     bool hermitian, bool negative, bool is_X) {
+		     bool adjoint, bool negative, bool is_X) {
     Scalar alpha = Scalar(1.0);
     if (negative) {
 	alpha = Scalar(-1.0);
@@ -88,7 +88,7 @@ void UpdateRedundant(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
 }
 
 template <typename Scalar>
-ApplyA22(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data, bool inverse) {
+void ApplyA22(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data, bool inverse) {
     dmhm::Vector<Scalar> u_red;
     GetRedundantVector(u, data, u_red);
     dmhm::Vector<Scalar> result(u_red.Size());
@@ -101,7 +101,7 @@ ApplyA22(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data, bool inverse) {
 }
 
 template <typename Scalar>
-Apply(dmhm::Vector<Scalar>& u, bool inverse) {
+void HIFFactor<Scalar>::Apply(dmhm::Vector<Scalar>& u, bool inverse) {
     int num_levels = schur_level_data_.size();
     assert(num_levels == static_cast<int>(skel_level_data_.size()));
     assert(u.Size() == N_ * N_ * N_);
@@ -113,6 +113,8 @@ Apply(dmhm::Vector<Scalar>& u, bool inverse) {
 	    GetSkeletonVector(u, data, u_skel);
 	    GetRedundantVector(u, data, u_red);
 	    if (inverse) {
+		// u_skel := - X^H * u_red + u_skel
+		UpdateSkeleton(u, data, u_skel, u_red, true, true, true);
 		;
 	    } else {
 		// u_red := X * u_skel + u_red
@@ -125,7 +127,10 @@ Apply(dmhm::Vector<Scalar>& u, bool inverse) {
 	    GetSkeletonVector(u, data, u_skel);
 	    GetRedundantVector(u, data, u_red);
 	    if (inverse) {
-		;
+		// u_red := -W^H * u_skel + u_red
+		UpdateRedundant(u, data, u_skel, u_red, true, true, false);
+		// u_skel := -X^H * u_red + u_skel
+		UpdateSkeleton(u, data, u_skel, u_red, true, true, true);
 	    } else {
 		// u_skel := W * u_red + u_skel
 		UpdateSkeleton(u, data, u_skel, u_red, false, false, false);
@@ -148,14 +153,17 @@ Apply(dmhm::Vector<Scalar>& u, bool inverse) {
         }
     }
 
-    for (int level = num_levels - 2, level >= 0; --level) {
+    for (int level = num_levels - 2; level >= 0; --level) {
         for (size_t j = 0; j < skel_level_data_[level].size(); ++j) {
             FactorData<Scalar>& data = skel_level_data_[level][j];
 	    dmhm::Vector<Scalar> u_skel, u_red;
 	    GetSkeletonVector(u, data, u_skel);
 	    GetRedundantVector(u, data, u_red);
 	    if (inverse) {
-		;
+		// u_red := -X * u_skel + u_red
+		UpdateRedundant(u, data, u_skel, u_red, false, true, true);
+		// u_skel := -W * u_red + u_skel
+		UpdateSkeleton(u, data, u_skel, u_red, false, true, false);
 	    } else {
 		// u_skel := X * u_red + u_skel
 		UpdateSkeleton(u, data, u_skel, u_red, true, false, true);
@@ -169,7 +177,8 @@ Apply(dmhm::Vector<Scalar>& u, bool inverse) {
 	    GetSkeletonVector(u, data, u_skel);
 	    GetRedundantVector(u, data, u_red);
 	    if (inverse) {
-		;
+		// u_red := -X * u_skel + u_red
+		UpdateRedundant(u, data, u_skel, u_red, false, true, false);
 	    } else {
 		// u_skel := X * u_red + u_skel
 		UpdateSkeleton(u, data, u_skel, u_red, true, false, true);

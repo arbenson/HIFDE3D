@@ -43,7 +43,7 @@ public:
     //
     // u (in): vector to which to apply the (inverse of the) matrix
     // apply_inverse (in): whether or not to apply the inverse
-    void Apply(Vector<Scalar>& u, bool apply_inverse=false);
+    void Apply(dmhm::Vector<Scalar>& u, bool apply_inverse=false);
 
     void set_N(int N);
     int N();
