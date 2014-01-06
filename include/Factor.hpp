@@ -38,6 +38,12 @@ public:
     // N x N x N, where N is one plus the number of discretization points per direction.
     int Tensor2LinearInd(Index3 ind);
 
+    // Apply the factored matrix (or its inverse) to the vector u
+    //
+    // u (in): vector to which to apply the (inverse of the) matrix
+    // apply_inverse (in): whether or not to apply the inverse
+    void Apply(Vector<Scalar>& u, bool apply_inverse=false);
+
     void set_N(int N);
     int N();
 
@@ -46,6 +52,9 @@ public:
 
     void set_epsilon(double epsilon);
     double epsilon();
+
+    std::vector< std::vector< FactorData<Scalar> > >& schur_level_data();
+    std::vector< std::vector< FactorData<Scalar> > >& skel_level_data();
 
     // We assume that any (i, j, k) index with a i, j, or k = 0 is _zero_
     // This is the zero boundary conditions
