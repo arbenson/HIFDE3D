@@ -8,11 +8,41 @@
 
 #include <vector>
 
+// Extract a dense submatrix from a dense matrix.
+// TODO: this function could be more efficient
+//
+// matrix (in): dense matrix from which to extract entries
+// rows (in): row indices
+// cols (in): column indices
+// submatrix (out): sp_matrix(rows, cols) as a dense matrix
+template <typename Scalar>
+void DenseSubmatrix(const dmhm::Dense<Scalar>& matrix, const std::vector<int>& rows,
+                    const std::vector<int>& cols, dmhm::Dense<Scalar>& submatrix) {
+    submatrix.Resize(rows.size(), cols.size());
+    for (size_t i = 0; i < rows.size(); ++i) {
+        for (size_t j = 0; i < cols.size(); ++i) {
+            submatrix.Set(i, j, matrix.Get(rows[i], cols[j]));
+        }
+    }
+}
+
+// Extract a dense submatrix from a sparse matrix.
+//
+// matrix (in): sparse matrix from which to extract entries
+// rows (in): row indices
+// cols (in): column indices
+// submatrix (out): sp_matrix(rows, cols) as a dense matrix
+template <typename Scalar>
+void DenseSubmatrix(const dmhm::Sparse<Scalar>& matrix, const std::vector<int>& rows,
+                    const std::vector<int>& cols, dmhm::Dense<Scalar>& submatrix) {
+    // TODO: Implement this function
+}
+
 // Schur out DOFs from a matrix.  The matrix contains the DOFs to be eliminated
 // and the interaction of these DOFs in the rest of the matrix.
 // If the DOF set is size m and there are n interactions, then the matrix is of
 // size (m + n) x (m + n).
-// 
+//
 // matrix (in): dense matrix containing the DOF set to be eliminated and the
 //              interaction of this DOF set.
 // DOF_set (in): indices of the degrees of freedom
@@ -46,36 +76,5 @@ void Schur(dmhm::Dense<Scalar>& matrix, FactorData<Scalar>& data) {
     data.Schur_comp().Resize(A12.Height(), data.X_mat().Width());
     dmhm::hmat_tools::Multiply(Scalar(-1), A12, data.X_mat(), data.Schur_comp());
 }
-
-// Extract a dense submatrix from a dense matrix.
-// TODO: this function could be more efficient
-//
-// matrix (in): dense matrix from which to extract entries
-// rows (in): row indices
-// cols (in): column indices
-// submatrix (out): sp_matrix(rows, cols) as a dense matrix
-template <typename Scalar>
-void DenseSubmatrix(const dmhm::Dense<Scalar>& matrix, const std::vector<int>& rows,
-                    const std::vector<int>& cols, dmhm::Dense<Scalar>& submatrix) {
-    submatrix.Resize(rows.size(), cols.size());
-    for (size_t i = 0; i < rows.size(); ++i) {
-        for (size_t j = 0; i < cols.size(); ++i) {
-            submatrix.Set(i, j, matrix.Get(rows[i], cols[j]));
-        }
-    }
-}
-
-// Extract a dense submatrix from a sparse matrix.
-//
-// matrix (in): sparse matrix from which to extract entries
-// rows (in): row indices
-// cols (in): column indices
-// submatrix (out): sp_matrix(rows, cols) as a dense matrix
-template <typename Scalar>
-void DenseSubmatrix(const dmhm::Sparse<Scalar>& matrix, const std::vector<int>& rows,
-                    const std::vector<int>& cols, dmhm::Dense<Scalar>& submatrix) {
-    // TODO: Implement this function
-}
-
 
 #endif  // ifndef SCHUR_HPP_

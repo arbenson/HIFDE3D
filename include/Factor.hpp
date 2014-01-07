@@ -5,8 +5,8 @@
 #include "dmhm/core/dense.hpp"
 #include "dmhm/core/hmat_tools.hpp"
 #include "dmhm/core/vector.hpp"
-#include "NumTns.hpp"
-#include "schur.hpp"
+#include "numtns.hpp"
+#include "Schur.hpp"
 #include "dmhm/core/sparse.hpp"
 #include "vec3t.hpp"
 
@@ -102,7 +102,7 @@ private:
 
     // Eliminate redundant DOFs via Schur complements after the ID has
     // completed.
-    // 
+    //
     // data (in/out): Needs DOF data (global indices and skeleton/redundant indices)
     //                filled in.  After function completes, all data is filled in.
     void SchurAfterID(FactorData<Scalar>& data);
@@ -111,7 +111,7 @@ private:
     // given level.  Also updates the remaining degrees of freedom.
     // This function should be called after computing all Schur complements
     // from either an integer level (just Schur complements) or half
-    // level (skeletonization). 
+    // level (skeletonization).
     //
     // level (in): the level for which computation has completed and for which
     //             data will be used for the update
@@ -122,13 +122,13 @@ private:
     // For a given cell location at a given level, determine the indices of the
     // DOFs interior to the cell.  These DOFs are eliminated by a Schur
     // complement Also, determine the interaction of the interior DOFs.
-    // The IndexData is filled with 
+    // The IndexData is filled with
     //
     // cell_location (in): 3-tuple of cell location
     // level (in): level of the cell location
     // data (out): fills global indices, DOF set, and DOF set interactions.
     void InteriorCellIndexData(Index3 cell_location, int level, IndexData& data);
-    
+
     // For a given cell location, level, and face, determine the indices of the
     // DOFs interior to the face and their interactions.  These DOFs are skeletonized.
     //
