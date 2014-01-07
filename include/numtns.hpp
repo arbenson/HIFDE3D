@@ -2,6 +2,7 @@
 #define _NUMTNS_HPP_
 
 #include "tools.hpp"
+#include "vec3t.hpp"
 
 template <class F>
 class NumTns {
@@ -97,6 +98,20 @@ public:
 #endif
         assert( i >= 0 && i < _m && j >= 0 && j < _n && k >= 0 && k < _p);
         return _data[i + j * _m + k * _m * _n];
+    }
+
+    const F& operator()(Index3 ind) const {
+#ifndef RELEASE
+        CallStackEntry entry("NumTns::operator()");
+#endif
+	return this->operator()(ind(0), ind(1), ind(2));
+    }
+
+    F& operator()(Index3 ind) {
+#ifndef RELEASE
+        CallStackEntry entry("NumTns::operator()");
+#endif
+	return this->operator()(ind(0), ind(1), ind(2));
     }
 
     F* data() const { return _data; }
