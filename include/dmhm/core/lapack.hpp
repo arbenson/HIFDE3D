@@ -901,7 +901,7 @@ inline void SVD
   float* s,
   float* U, int ldu,
   float* VH, int ldvh,
-  float* work, int lwork, float* rwork=0 )
+  float* work, int lwork, __attribute__((unused)) float* rwork=0 )
 {
 #ifndef RELEASE
     CallStackEntry entry("lapack::SVD");
@@ -940,7 +940,7 @@ inline void SVD
   double* s,
   double* U, int ldu,
   double* VH, int ldvh,
-  double* work, int lwork, double* rwork=0 )
+  double* work, int lwork, __attribute__((unused)) double* rwork=0 )
 {
 #ifndef RELEASE
     CallStackEntry entry("lapack::SVD");
@@ -1133,7 +1133,7 @@ inline void AdjointPseudoInverse
   float* U, int ldu,
   float* VH, int ldvh,
   float* work, int lwork,
-  float* realWork, float epsilon )
+  __attribute__((unused)) float* realWork, float epsilon )
 {
 #ifndef RELEASE
     CallStackEntry entry("lapack::AdjointPseudoInverse");
@@ -1169,7 +1169,7 @@ inline void AdjointPseudoInverse
   double* U, int ldu,
   double* VH, int ldvh,
   double* work, int lwork,
-  double* realWork, double epsilon )
+  __attribute__((unused)) double* realWork, double epsilon )
 {
 #ifndef RELEASE
     CallStackEntry entry("lapack::AdjointPseudoInverse");
@@ -1797,7 +1797,7 @@ inline void EVD
   float* w,
   float* work, int lwork,
   int* iwork, int liwork,
-  float* rwork=0, int lrwork=0 )
+  __attribute__((unused)) float* rwork=0, __attribute__((unused)) int lrwork=0 )
 {
 #ifndef RELEASE
     CallStackEntry entry("lapack::EVD");
@@ -1824,7 +1824,7 @@ inline void EVD
   double* w,
   double* work, int lwork,
   int* iwork, int liwork,
-  double* rwork=0, int lrwork=0 )
+  __attribute__((unused)) double* rwork=0, __attribute__((unused)) int lrwork=0 )
 {
 #ifndef RELEASE
     CallStackEntry entry("lapack::EVD");

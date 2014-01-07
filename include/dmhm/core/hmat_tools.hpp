@@ -620,7 +620,7 @@ void Copy( const LowRank<Scalar>& A, LowRank<Scalar>& B )
  */
 
 template<typename Real>
-void Conjugate( Vector<Real>& x )
+void Conjugate( __attribute__((unused)) Vector<Real>& x )
 { }
 
 template<typename Real>
@@ -754,7 +754,7 @@ void Conjugate
 }
 
 template<typename Real>
-void Conjugate( Dense<Real>& D )
+void Conjugate( __attribute__((unused)) Dense<Real>& D )
 { }
 
 template<typename Real>
