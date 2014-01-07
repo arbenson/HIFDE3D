@@ -14,22 +14,143 @@ namespace dmhm {
 
 // A simple Compressed Sparse Row (CSR) data structure
 template<typename Scalar>
-struct Sparse
+class Sparse
 {
-    bool symmetric;
-    int height, width;
-    Vector<Scalar> nonzeros;
-    Vector<int> columnIndices;
-    Vector<int> rowOffsets;
+private:
+    bool symmetric_;
+    int height_, width_, nnz_;
+    std::map<int,std::map<int,Scalar> > sparsemat_;
+
+public:
+    void Add( int i, int j, Scalar val );
+    void Add( Vector<int> iidx, Vector<int> jidx, Dense<Scalar> vals );
+    void Add( int i, Vector<int> jidx, Vector<Scalar> vals );
+    void Add( Vector<int> iidx, int j, Vector<Scalar> vals );
+    void Delete( int i, int j );
+    void Delete( Vector<int> iidx, Vector<int> jidx );
+    Scalar Find( int i, int j ) const;
+    bool Check( int i, int j ) const;
+    Dense<Scalar> Find( Vector<int> iidx, Vector<int> jidx );
+    Vector<Scalar> Find( int i, Vector<int> jidx );
+    Vector<Scalar> Find( Vector<int> iidx, int j );
+    Vector<Scalar> FindRow( int i );
+    Vector<Scalar> FindCol( int j );
+
+    Scalar& operator[]( int i, int j );
+    { return Find(i,j); }
+    Dense<Scalar>& operator[]( Vector<int> iidx, Vector<int> jidx )
+    { return Find(iidx,jidx); }
+    Vector<Scalar>& operator[]( int i, Vector<int> jidx )
+    { return Find(i,jidx); }
+    Vector<Scalar>& operator[]( Vector<int> iidx, int j )
+    { return Find(iidx,j); }
 
     void Clear();
-
     void Print( const std::string tag, std::ostream& os=std::cout ) const;
 };
 
 //----------------------------------------------------------------------------//
 // Implementation begins here                                                 //
 //----------------------------------------------------------------------------//
+
+template<typename Scalar>
+inline void
+Sparse<Scalar>::Add( int i, int j, Scalar val )
+{
+#ifndef RELEASE
+    CallStackEntry entry("Sparse::Add");
+#endif
+    if( sparsemat_.find(i) == sparsemat_.end() )
+    {
+        sparsemat_[i] = new map<int, Scalar>;
+        sparsemat_[i][j] = val;
+    }
+    else
+    {
+        map<int, Scalar> &irow = sparsemat_[i];
+        if( irow.find(j) != irow.end() )
+        {
+#ifndef RELEASE
+            throw std::logic_error("Add to a already exist position");
+#endif
+            irow[j] += val;
+        }
+        else
+            irow[j] = val;
+    }
+}
+
+template<typename Scalar>
+inline void
+Sparse<Scalar>::Add( int i, Vector<int> jidx, Vector<Scalar> vals )
+{
+#ifndef RELEASE
+    CallStackEntry entry("Sparse::Add");
+#endif
+    if( sparsemat_.find(i) == sparsemat_.end() )
+    {
+        sparsemat_[i] = new map<int, Scalar>;
+        map<int, Scalar> &irow = sparsemat_[i];
+        for( int iter=0; iter<jidx.Size(); ++iter )
+		{
+            int j = jidx.Get(iter);
+            irow[j] = vals[iter];
+        }
+    }
+    else
+    {
+        map<int, Scalar> &irow = sparsemat_[i];
+        for( int iter=0; iter<jidx.Size(); ++iter )
+		{
+            int j = jidx.Get(iter);
+            if( irow.find(j) != irow.end() )
+            {
+#ifndef RELEASE
+                throw std::logic_error("Add to a already exist position");
+#endif
+                irow[j] += vals[iter];
+            }
+            else
+                irow[j] = vals[iter];
+        }
+    }
+}
+
+template<typename Scalar>
+inline void
+Sparse<Scalar>::Add( int i, Vector<int> jidx, Vector<Scalar> vals )
+{
+#ifndef RELEASE
+    CallStackEntry entry("Sparse::Add");
+#endif
+    if( sparsemat_.find(i) == sparsemat_.end() )
+    {
+        sparsemat_[i] = new map<int, Scalar>;
+        map<int, Scalar> &irow = sparsemat_[i];
+        for( int iter=0; iter<jidx.Size(); ++iter )
+		{
+            int j = jidx.Get(iter);
+            irow[j] = vals[iter];
+        }
+    }
+    else
+    {
+        map<int, Scalar> &irow = sparsemat_[i];
+        for( int iter=0; iter<jidx.Size(); ++iter )
+		{
+            int j = jidx.Get(iter);
+            if( irow.find(j) != irow.end() )
+            {
+#ifndef RELEASE
+                throw std::logic_error("Add to a already exist position");
+#endif
+                irow[j] += vals[iter];
+            }
+            else
+                irow[j] = vals[iter];
+        }
+    }
+}
 
 template<typename Scalar>
 inline void
