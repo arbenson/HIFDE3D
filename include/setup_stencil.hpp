@@ -1,4 +1,7 @@
-#include "hifde3d.hpp"
+#ifndef SETUP_STENCIL_HPP_
+#define SETUP_STENCIL_HPP_
+
+#include "hifde3d/core/environment.hpp"
 #include "numtns.hpp"
 
 namespace hifde3d {
@@ -9,7 +12,7 @@ void SetupStencil(HIFFactor<Scalar>& factor, int N, double h, NumTns<Scalar>& A,
 #ifndef RELEASE
     CallStackEntry entry("SetupStencil");
 #endif
-    Sparse<Scalar>& matrix = factor.sp_matrix();
+    // Sparse<Scalar>& matrix = factor.sp_matrix();
     int NC = N + 1;
     assert(A.m() == NC && A.n() == NC && A.p() == NC);
     assert(V.m() == NC && V.n() == NC && V.p() == NC);
@@ -65,3 +68,5 @@ void SetupStencil(HIFFactor<Scalar>& factor, int N, double h, NumTns<Scalar>& A,
 }
 
 }
+
+#endif  // ifndef SETUP_STENCIL_HPP_

@@ -10,7 +10,6 @@
 #ifndef HIFDE3D_BLAS_HPP
 #define HIFDE3D_BLAS_HPP 1
 
-#include "hifde3d/config.h"
 #include <complex>
 #include <sstream>
 #include <stdexcept>

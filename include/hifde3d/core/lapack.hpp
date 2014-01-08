@@ -10,7 +10,6 @@
 #ifndef HIFDE3D_LAPACK_HPP
 #define HIFDE3D_LAPACK_HPP 1
 
-#include "hifde3d/config.h"
 #include "blas.hpp"
 #include <complex>
 #include <cstring>

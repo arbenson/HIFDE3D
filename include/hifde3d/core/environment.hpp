@@ -25,8 +25,6 @@
 #include <utility>
 #include <vector>
 
-#include "hifde3d/config.h"
-
 #include "hifde3d/core/mpi.hpp"
 #include "hifde3d/core/choice.hpp"
 #include "hifde3d/core/mpi_choice.hpp"

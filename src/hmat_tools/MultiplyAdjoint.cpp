@@ -6,7 +6,8 @@
    under the GPLv3 License, which can be found in the LICENSE file in the root
    directory, or at http://opensource.org/licenses/GPL-3.0
 */
-#include "hifde3d.hpp"
+#include "hifde3d/core/environment.hpp"
+#include "hifde3d/core/hmat_tools.hpp"
 
 namespace hifde3d {
 namespace hmat_tools {

@@ -1,4 +1,5 @@
-#include "hifde3d.hpp"
+#include "hifde3d/core/environment.hpp"
+#include "hifde3d/core/hmat_tools.hpp"
 #include "Factor.hpp"
 #include "InterpDecomp.hpp"
 
@@ -291,7 +292,7 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
         // save on storage
         data.Schur_comp().Clear();
 	std::vector<int>& red_inds = ind_data.redundant_inds();
-        for (int i = 0; i < red_inds.size(); ++i) {
+        for (size_t i = 0; i < red_inds.size(); ++i) {
             del_inds.PushBack(global_inds[red_inds[i]]);
         }
     }

@@ -27,22 +27,6 @@ std::ostream& operator<<(std::ostream& os, const std::pair<T,S>& a) {
   return os;
 }
 
-#ifndef RELEASE
-void PushCallStack( std::string s );
-void PopCallStack();
-void DumpCallStack( std::ostream& os=std::cerr );
-
-class CallStackEntry {
-public:
-    CallStackEntry( std::string s ) {
-        if( !std::uncaught_exception() )
-            PushCallStack(s);
-    }
-    ~CallStackEntry() {
-        if( !std::uncaught_exception() )
-            PopCallStack();
-    }
-};
-#endif  // ifndef RELEASE
 }
+
 #endif  // _COMMON_HPP_
