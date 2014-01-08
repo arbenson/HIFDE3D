@@ -78,7 +78,8 @@ private:
     dmhm::Dense<Scalar> X_mat_;       // A_22_inv * A_21
     dmhm::Dense<Scalar> Schur_comp_;  // -A_12 * X_mat
     dmhm::Dense<Scalar> W_mat_;       // Interpolative factor (only for Skel)
-    Face face_;                 // to which face this data corresponds (only for Skel)
+    Face face_;                       // to which face this data corresponds
+                                      // (only for Skel)
 };
 
 #endif  // ifndef DATA_HPP_
