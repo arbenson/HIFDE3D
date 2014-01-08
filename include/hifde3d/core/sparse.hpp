@@ -41,6 +41,10 @@ public:
     void Add( int i, Vector<int>& jidx, Vector<Scalar>& vals );
     void Add( Vector<int>& iidx, int j, Vector<Scalar>& vals );
     void Delete( int i, int j );
+    void DeleteRow( int i );
+    void DeleteCol( int j );
+    void DeleteRow( Vector<int>& iidx );
+    void DeleteCol( Vector<int>& jidx );
     void Delete( Vector<int>& iidx, Vector<int>& jidx );
     Scalar Find( int i, int j ) const;
     bool Check( int i, int j ) const;
@@ -260,6 +264,70 @@ Sparse<Scalar>::Delete( int i, int j )
             irow.erase(j);
             nnz_--;
         }
+    }
+}
+
+template<typename Scalar>
+inline void
+Sparse<Scalar>::DeleteRow( int i )
+{
+#ifndef RELEASE
+    CallStackEntry entry("Sparse::DeleteRow");
+#endif
+    if( sparsemat_.find(i) != sparsemat_.end() )
+    {
+        std::map<int, Scalar> &irow = sparsemat_[i];
+        nnz_ -= irow.size();
+        irow.clear();
+    }
+}
+
+template<typename Scalar>
+inline void
+Sparse<Scalar>::DeleteCol( int j )
+{
+#ifndef RELEASE
+    CallStackEntry entry("Sparse::DeleteCol");
+#endif
+    typename std::map<int,std::map<int,Scalar> >::iterator it;
+    for( it=sparsemat_.begin(); it!=sparsemat_.end(); ++it )
+    {
+        std::map<int, Scalar> &irow = it->second;
+        if( irow.find(j) != irow.end() )
+        {
+            irow.erase(j);
+            nnz_--;
+        }
+    }
+}
+
+template<typename Scalar>
+inline void
+Sparse<Scalar>::DeleteRow( Vector<int>& iidx )
+{
+#ifndef RELEASE
+    CallStackEntry entry("Sparse::DeleteRow");
+#endif
+    for( int iter=0; iter<iidx.Size(); ++iter )
+    {
+        int i = iidx.Get(iter);
+        DeleteRow(i);
+    }
+}
+
+//DeleteCol(vector) can be rewrite, which could
+//reduce the complexity by a factor of constant.
+template<typename Scalar>
+inline void
+Sparse<Scalar>::DeleteCol( Vector<int>& jidx )
+{
+#ifndef RELEASE
+    CallStackEntry entry("Sparse::DeleteCol");
+#endif
+    for( int iter=0; iter<jidx.Size(); ++iter )
+    {
+        int j = jidx.Get(iter);
+        DeleteCol(j);
     }
 }
 
