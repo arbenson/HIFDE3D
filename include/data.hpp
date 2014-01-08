@@ -13,30 +13,26 @@ public:
     IndexData() {}
     ~IndexData() {
 	global_inds_.clear();
-	DOF_set_.clear();
-	DOF_set_interaction_.clear();
+	redundant_inds_.clear();
+	skeleton_inds_.clear();
     }
 
     // Indices into the global matrix of size N^3 x N^3
     std::vector<int>& global_inds() { return global_inds_; }
 
-    // If global_inds_ is of size n, then the DOF_set_* vectors
-    // are disjoint index subsets of {0, ..., n-1} that correspond
-    // to the degrees of freedom and the interactions.
-    std::vector<int>& DOF_set() { return DOF_set_; }
-    std::vector<int>& DOF_set_interaction() { return DOF_set_interaction_; }
-
-    // Aliases for above to make the code readable.
-    std::vector<int>& redundant_set() { return DOF_set_; }
-    std::vector<int>& skeleton_set() { return DOF_set_interaction_; }
+    // If global_inds_ is of size n, then the redundant and skeleton
+    // indices are disjoint index subsets of {0, ..., n-1} that correspond
+    // to the degrees of freedom being eliminated and their interactions.
+    std::vector<int>& redundant_inds() { return redundant_inds_; }
+    std::vector<int>& skeleton_inds() { return skeleton_inds_; }
 
 private:
     std::vector<int> global_inds_;         // indices into N^3 x N^3 system
-    std::vector<int> DOF_set_;             // indices of global_inds_ corresponding
+    std::vector<int> redundant_inds_;      // indices of global_inds_ corresponding
                                            // to what is being eliminated
-    std::vector<int> DOF_set_interaction_; // indices of global_inds_ corresponding
+    std::vector<int> skeleton_inds_;        // indices of global_inds_ corresponding
                                            // to non-zero entries of the matrix below
-                                           // global_inds_(DOF_set_).
+                                           // global_inds_(redundant_inds_).
 };
 
 class SkelIndexData {
@@ -67,7 +63,7 @@ public:
     Dense<Scalar>& Schur_comp() { return Schur_comp_; }
     Dense<Scalar>& W_mat() { return W_mat_; }
 
-    int NumDOFsEliminated() { return ind_data_.DOF_set().size(); }
+    int NumDOFsEliminated() { return ind_data_.skeleton_inds().size(); }
 
     IndexData& ind_data() { return ind_data_; }
     void set_face(Face face) { face_ = face; }
@@ -80,7 +76,8 @@ private:
     Dense<Scalar> X_mat_;       // A_22_inv * A_21
     Dense<Scalar> Schur_comp_;  // -A_12 * X_mat
     Dense<Scalar> W_mat_;       // Interpolative factor (only for Skel)
-    Face face_;                 // to which face this data corresponds (only for Skel)
+    Face face_;                       // to which face this data corresponds
+                                      // (only for Skel)
 };
 
 }

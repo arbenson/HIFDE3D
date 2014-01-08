@@ -47,22 +47,19 @@ void DenseSubmatrix(const Sparse<Scalar>& matrix, const std::vector<int>& rows,
 //
 // matrix (in): dense matrix containing the DOF set to be eliminated and the
 //              interaction of this DOF set.
-// DOF_set (in): indices of the degrees of freedom
-// DOF_set_interaction (in): indices of the interactions of DOF_set
 // data (out): data to be filled A_22, A_22^{-1}, A_22^{-1} * A21,
 //             and Schur complement
-// return value: 0 on failure, 1 on success
 template <typename Scalar>
 void Schur(Dense<Scalar>& matrix, FactorData<Scalar>& data) {
-    std::vector<int> DOF_set = data.ind_data().DOF_set();
-    std::vector<int> DOF_set_interaction = data.ind_data().DOF_set_interaction();
+    std::vector<int>& red_inds = data.ind_data().redundant_inds();
+    std::vector<int>& skel_inds = data.ind_data().skeleton_inds();
 
     Dense<Scalar> A12;
-    DenseSubmatrix(matrix, DOF_set_interaction, DOF_set, A12);
+    DenseSubmatrix(matrix, skel_inds, red_inds, A12);
     Dense<Scalar> A21;
-    DenseSubmatrix(matrix, DOF_set, DOF_set_interaction, A21);
-    DenseSubmatrix(matrix, DOF_set, DOF_set, data.A_22());
-    DenseSubmatrix(matrix, DOF_set, DOF_set, data.A_22_inv());
+    DenseSubmatrix(matrix, red_inds, skel_inds, A21);
+    DenseSubmatrix(matrix, red_inds, red_inds, data.A_22());
+    DenseSubmatrix(matrix, red_inds, red_inds, data.A_22_inv());
     // TODO: probably faster to copy A_22 into A_22_inv, rather than reading
     // from the matrix again
     hmat_tools::Invert(data.A_22_inv());

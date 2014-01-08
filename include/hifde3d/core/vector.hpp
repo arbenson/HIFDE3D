@@ -10,8 +10,6 @@
 #ifndef HIFDE3D_VECTOR_HPP
 #define HIFDE3D_VECTOR_HPP 1
 
-#include "tools.hpp"
-
 #include <cstring>
 #include <stdexcept>
 #include <vector>

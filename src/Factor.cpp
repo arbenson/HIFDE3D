@@ -1,3 +1,4 @@
+#include "hifde3d.hpp"
 #include "Factor.hpp"
 #include "InterpDecomp.hpp"
 
@@ -10,6 +11,8 @@ void HIFFactor<Scalar>::Initialize() {
     assert(N_ > 0);
     int NC = N_ + 1;
     remaining_DOFs_.resize(NC, NC, NC);
+    // assert(sp_matrix_.Height() == NC * NC * NC);
+    // assert(sp_matrix_.Width() == NC * NC * NC);
 
     // Any zero index is zero (vanishing boundary conditions)
     for (int i = 0; i < NC; ++i) {
@@ -75,10 +78,10 @@ void HIFFactor<Scalar>::UpdateRemainingDOFs(int level, bool is_skel) {
     }
 
     for (size_t i = 0; i < level_data.size(); ++i) {
-        std::vector<int>& DOF_set = level_data[i].ind_data().DOF_set();
+        std::vector<int>& red_inds = level_data[i].ind_data().redundant_inds();
         std::vector<int>& global_inds = level_data[i].ind_data().global_inds();
-        for (size_t j = 0; j < DOF_set.size(); ++j) {
-            eliminated_DOFs.push_back(global_inds[DOF_set[j]]);
+        for (size_t j = 0; j < red_inds.size(); ++j) {
+            eliminated_DOFs.push_back(global_inds[red_inds[j]]);
         }
     }
 
@@ -103,11 +106,11 @@ void HIFFactor<Scalar>::SchurAfterID(FactorData<Scalar>& data) {
     }
 
     // Fill in with W
-    std::vector<int>& skeleton_inds = data.ind_data().skeleton_set();
-    std::vector<int>& redundant_inds = data.ind_data().redundant_set();
-    for (size_t i = 0; i < skeleton_inds.size(); ++i) {
-        for (size_t j = 0; j < redundant_inds.size(); ++j) {
-            Rot.Set(skeleton_inds[i], redundant_inds[j], -data.W_mat().Get(i, j));
+    std::vector<int>& skel_inds = data.ind_data().skeleton_inds();
+    std::vector<int>& red_inds = data.ind_data().redundant_inds();
+    for (size_t i = 0; i < skel_inds.size(); ++i) {
+        for (size_t j = 0; j < red_inds.size(); ++j) {
+            Rot.Set(skel_inds[i], red_inds[j], -data.W_mat().Get(i, j));
         }
     }
 
@@ -125,7 +128,7 @@ bool HIFFactor<Scalar>::Skeletonize(Index3 cell_location, Face face,
     SkelIndexData skel_data;
     InteriorFaceIndexData(cell_location, face, level, skel_data);
     if (skel_data.global_cols().size() == 0) {
-	return false;    // No face here.
+        return false;    // No face here.
     }
 
     Dense<Scalar> submat;
@@ -137,8 +140,8 @@ bool HIFFactor<Scalar>::Skeletonize(Index3 cell_location, Face face,
     for (size_t i = 0; i < cols.size(); ++i) {
         global.push_back(cols[i]);
     }
-    InterpDecomp(submat, data.W_mat(), data.ind_data().skeleton_set(),
-                 data.ind_data().redundant_set(), epsilon_);
+    InterpDecomp(submat, data.W_mat(), data.ind_data().skeleton_inds(),
+                 data.ind_data().redundant_inds(), epsilon_);
     SchurAfterID(data);
     return true;
 }
@@ -160,12 +163,12 @@ void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
                 Dense<Scalar> submat;
                 DenseSubmatrix(sp_matrix_, global_inds, global_inds, submat);
                 Schur(submat, factor_data);
-		num_DOFs_eliminated += factor_data.NumDOFsEliminated();
+                num_DOFs_eliminated += factor_data.NumDOFsEliminated();
             }
         }
     }
     std::cout << "Level (" << level << ", Schur): "
-              << num_DOFs_eliminated << "DOFs eliminated" << std::endl;
+              << num_DOFs_eliminated << " DOFs eliminated" << std::endl;
 }
 
 template <typename Scalar>
@@ -180,42 +183,42 @@ void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
                 // We only do half of the faces since each face is shared by
                 // two cells.  To keep indexing consistent, we do the top,
                 // front, and left faces.
-		// TODO: abstract away these three calls
-		{
-		    Face face = TOP;
-		    level_data.push_back(FactorData<Scalar>());
-		    FactorData<Scalar>& top_data = level_data[level_data.size() - 1];
-		    top_data.set_face(face);
-		    bool ret = Skeletonize(cell_location, face, level, top_data);
-		    if (!ret) {
-			level_data.pop_back();
-		    }
-		    num_DOFs_eliminated += top_data.NumDOFsEliminated();
-		}
+                // TODO: abstract away these three calls
+                {
+                    Face face = TOP;
+                    level_data.push_back(FactorData<Scalar>());
+                    FactorData<Scalar>& top_data = level_data[level_data.size() - 1];
+                    top_data.set_face(face);
+                    bool ret = Skeletonize(cell_location, face, level, top_data);
+                    if (!ret) {
+                        level_data.pop_back();
+                    }
+                    num_DOFs_eliminated += top_data.NumDOFsEliminated();
+                }
 
-		{
-		    Face face = FRONT;
-		    level_data.push_back(FactorData<Scalar>());
-		    FactorData<Scalar>& front_data = level_data[level_data.size() - 1];
-		    front_data.set_face(face);
-		    bool ret = Skeletonize(cell_location, face, level, front_data);
-		    if (!ret) {
-			level_data.pop_back();
-		    }
-		    num_DOFs_eliminated += front_data.NumDOFsEliminated();
-		}
+                {
+                    Face face = FRONT;
+                    level_data.push_back(FactorData<Scalar>());
+                    FactorData<Scalar>& front_data = level_data[level_data.size() - 1];
+                    front_data.set_face(face);
+                    bool ret = Skeletonize(cell_location, face, level, front_data);
+                    if (!ret) {
+                        level_data.pop_back();
+                    }
+                    num_DOFs_eliminated += front_data.NumDOFsEliminated();
+                }
 
-		{
-		    Face face = LEFT;
-		    level_data.push_back(FactorData<Scalar>());
-		    FactorData<Scalar>& left_data = level_data[level_data.size() - 1];
-		    left_data.set_face(face);
-		    bool ret = Skeletonize(cell_location, face, level, left_data);
-		    if (!ret) {
-			level_data.pop_back();
-		    }
-		    num_DOFs_eliminated += left_data.NumDOFsEliminated();
-		}
+                {
+                    Face face = LEFT;
+                    level_data.push_back(FactorData<Scalar>());
+                    FactorData<Scalar>& left_data = level_data[level_data.size() - 1];
+                    left_data.set_face(face);
+                    bool ret = Skeletonize(cell_location, face, level, left_data);
+                    if (!ret) {
+                        level_data.pop_back();
+                    }
+                    num_DOFs_eliminated += left_data.NumDOFsEliminated();
+                }
             }
         }
     }
@@ -230,19 +233,42 @@ template <typename Scalar>
 void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
     std::vector< FactorData<Scalar> >& level_data = schur_level_data_[level];
     if (is_skel) {
-	level_data = skel_level_data_[level];
+        level_data = skel_level_data_[level];
     }
 
-    // TODO: implement this function
+    // TODO: pre-allocate these vectors
+    Vector<int> iidx;
+    Vector<int> jidx;
+    Vector<Scalar> vals;
+    Vector<int> del_inds;
 
-    // Loop over all factor data
-    //    Extract Schur complement information
-    // Update sparse matrix
+    // TODO: this process of forming iidx, jidx, and vals could be faster.
+    for (size_t n = 0; n < level_data.size(); ++n) {
+        FactorData<Scalar>& data = level_data[n];
+        IndexData& ind_data = data.ind_data();
+        std::vector<int>& skel_inds = ind_data.skeleton_inds();
+        std::vector<int>& global_inds = ind_data.global_inds();
+        assert(data.Schur_comp().Height() == data.Schur_comp().Width());
+        assert(data.Schur_comp().Height() == static_cast<int>(skel_inds.size()));
+        for (size_t i = 0; i < skel_inds.size(); ++i) {
+            for (size_t j = 0; j < skel_inds.size(); ++j) {
+                iidx.PushBack(global_inds[skel_inds[i]]);
+                jidx.PushBack(global_inds[skel_inds[j]]);
+                vals.PushBack(data.Schur_comp().Get(i, j));
+            }
+        }
+        // save on storage
+        data.Schur_comp().Clear();
+	std::vector<int>& red_inds = ind_data.redundant_inds();
+        for (int i = 0; i < red_inds.size(); ++i) {
+            del_inds.PushBack(global_inds[red_inds[i]]);
+        }
+    }
 
-    // Loop over all data
-    //   Get eliminated DOFs
-    // Set entries in sparse matrix corresponding to eliminated DOFs to zero
-    return;
+//TODO: no match functions, vals should be dense<Scalar>, delete should have two inputs
+    //sp_matrix_.Add(iidx, jidx, vals);
+    //sp_matrix_.Delete(del_inds);
+    UpdateRemainingDOFs(level, is_skel);
 }
 
 template <typename Scalar>
@@ -277,17 +303,17 @@ void HIFFactor<Scalar>::InteriorCellIndexData(Index3 cell_location, int level,
     Index3 max_inds = vec3min(width * (cell_location + 1), N_);
     assert(min_inds <= max_inds);
 
-    std::vector<int>& DOF_set = data.DOF_set();
-    std::vector<int>& DOF_set_interaction = data.DOF_set_interaction();
+    std::vector<int>& red_inds = data.redundant_inds();
+    std::vector<int>& skel_inds = data.skeleton_inds();
     for (int i = min_inds(0); i <= max_inds(0); ++i) {
         for (int j = min_inds(1); i <= max_inds(1); ++j) {
             for (int k = min_inds(2); i <= max_inds(2); ++k) {
                 Index3 curr_ind(i, j, k);
                 if (IsRemainingDOF(curr_ind)) {
                     if (IsFaceInterior(level, curr_ind)) {
-                        DOF_set_interaction.push_back(Tensor2LinearInd(curr_ind));
+                        skel_inds.push_back(Tensor2LinearInd(curr_ind));
                     } else if (IsCellInterior(level, curr_ind)) {
-                        DOF_set.push_back(Tensor2LinearInd(curr_ind));
+                        red_inds.push_back(Tensor2LinearInd(curr_ind));
                     }
                 }
             }
@@ -510,8 +536,8 @@ void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
     case RIGHT:
     case BACK:
     default:
-	// TODO: better error message
-	assert(0);  // not yet implemented
+        // TODO: better error message
+        assert(0);  // not yet implemented
     }
     return;
 }

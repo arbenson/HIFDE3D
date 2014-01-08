@@ -37,26 +37,26 @@ public:
     { return sparsemat_; }
 
     void Add( int i, int j, Scalar val );
-    void Add( Vector<int> iidx, Vector<int> jidx, Dense<Scalar> vals );
-    void Add( int i, Vector<int> jidx, Vector<Scalar> vals );
-    void Add( Vector<int> iidx, int j, Vector<Scalar> vals );
+    void Add( Vector<int>& iidx, Vector<int>& jidx, Dense<Scalar>& vals );
+    void Add( int i, Vector<int>& jidx, Vector<Scalar>& vals );
+    void Add( Vector<int>& iidx, int j, Vector<Scalar>& vals );
     void Delete( int i, int j );
-    void Delete( Vector<int> iidx, Vector<int> jidx );
+    void Delete( Vector<int>& iidx, Vector<int>& jidx );
     Scalar Find( int i, int j ) const;
     bool Check( int i, int j ) const;
-    Dense<Scalar>& Find( Vector<int> iidx, Vector<int> jidx ) const;
-    Vector<Scalar>& Find( int i, Vector<int> jidx ) const;
-    Vector<Scalar>& Find( Vector<int> iidx, int j ) const;
+    Dense<Scalar>& Find( Vector<int>& iidx, Vector<int>& jidx ) const;
+    Vector<Scalar>& Find( int i, Vector<int>& jidx ) const;
+    Vector<Scalar>& Find( Vector<int>& iidx, int j ) const;
     Vector<Scalar>& FindRow( int i ) const;
     Vector<Scalar>& FindCol( int j ) const;
 
     Scalar& operator()( int i, int j )
     { return Find(i,j); }
-    Dense<Scalar>& operator()( Vector<int> iidx, Vector<int> jidx )
+    Dense<Scalar>& operator()( Vector<int>& iidx, Vector<int>& jidx )
     { return Find(iidx,jidx); }
-    Vector<Scalar>& operator()( int i, Vector<int> jidx )
+    Vector<Scalar>& operator()( int i, Vector<int>& jidx )
     { return Find(i,jidx); }
-    Vector<Scalar>& operator()( Vector<int> iidx, int j )
+    Vector<Scalar>& operator()( Vector<int>& iidx, int j )
     { return Find(iidx,j); }
 
     void Clear();
@@ -126,7 +126,7 @@ Sparse<Scalar>::Add( int i, int j, Scalar val )
 
 template<typename Scalar>
 inline void
-Sparse<Scalar>::Add( int i, Vector<int> jidx, Vector<Scalar> vals )
+Sparse<Scalar>::Add( int i, Vector<int>& jidx, Vector<Scalar>& vals )
 {
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Add");
@@ -166,7 +166,7 @@ Sparse<Scalar>::Add( int i, Vector<int> jidx, Vector<Scalar> vals )
 
 template<typename Scalar>
 inline void
-Sparse<Scalar>::Add( Vector<int> iidx, int j, Vector<Scalar> vals )
+Sparse<Scalar>::Add( Vector<int>& iidx, int j, Vector<Scalar>& vals )
 {
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Add");
@@ -202,7 +202,8 @@ Sparse<Scalar>::Add( Vector<int> iidx, int j, Vector<Scalar> vals )
 
 template<typename Scalar>
 inline void
-Sparse<Scalar>::Add( Vector<int> iidx, Vector<int> jidx, Dense<Scalar> vals )
+Sparse<Scalar>::Add( Vector<int>& iidx, Vector<int>& jidx,
+                     Dense<Scalar>& vals )
 {
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Add");
@@ -264,7 +265,7 @@ Sparse<Scalar>::Delete( int i, int j )
 
 template<typename Scalar>
 inline void
-Sparse<Scalar>::Delete( Vector<int> iidx, Vector<int> jidx )
+Sparse<Scalar>::Delete( Vector<int>& iidx, Vector<int>& jidx )
 {
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Delete");
@@ -336,7 +337,7 @@ Sparse<Scalar>::Check( int i, int j ) const
 
 template<typename Scalar>
 inline Dense<Scalar>&
-Sparse<Scalar>::Find( Vector<int> iidx, Vector<int> jidx ) const
+Sparse<Scalar>::Find( Vector<int>& iidx, Vector<int>& jidx ) const
 {
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Find");
@@ -368,7 +369,7 @@ Sparse<Scalar>::Find( Vector<int> iidx, Vector<int> jidx ) const
 
 template<typename Scalar>
 inline Vector<Scalar>&
-Sparse<Scalar>::Find( int i, Vector<int> jidx ) const
+Sparse<Scalar>::Find( int i, Vector<int>& jidx ) const
 {
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Find");
@@ -396,7 +397,7 @@ Sparse<Scalar>::Find( int i, Vector<int> jidx ) const
 
 template<typename Scalar>
 inline Vector<Scalar>&
-Sparse<Scalar>::Find( Vector<int> iidx, int j ) const
+Sparse<Scalar>::Find( Vector<int>& iidx, int j ) const
 {
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Find");
