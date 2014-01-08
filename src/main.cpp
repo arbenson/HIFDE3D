@@ -4,22 +4,25 @@
 
 #include <iostream>
 
-namespace hifde3d {
-
 int main() {
-    HIFFactor<double> factor;
+#ifndef RELEASE
+    // When not in release mode, we catch all errors so that we can print the
+    // manual call stack.
+    try {
+#endif
+	hifde3d::HIFFactor<double> factor;
     factor.set_epsilon(1e-3);
     factor.set_N(31);
     factor.set_P(4);
 
     int NC = factor.N() + 1;
-    NumTns<double> A(NC, NC, NC);
-    NumTns<double> V(NC, NC, NC);
-    Vector<double> u(NC * NC * NC);
+    hifde3d::NumTns<double> A(NC, NC, NC);
+    hifde3d::NumTns<double> V(NC, NC, NC);
+    hifde3d::Vector<double> u(NC * NC * NC);
     for (int i = 0; i < NC; ++i) {
 	for (int j = 0; j < NC; ++j) {
 	    for (int k = 0; k < NC; ++k) {
-		Index3 ind(i, j, k);
+		hifde3d::Index3 ind(i, j, k);
 		if (i == 0 || j == 0 || k == 0) {
 		    A(ind) = 0;
 		    V(ind) = 0;
@@ -34,17 +37,18 @@ int main() {
 
     double h = 1.0 / NC;
     std::cout << "setup..." << std::endl;
-    SetupStencil(factor, NC - 1, h, A, V);
+    hifde3d::SetupStencil(factor, NC - 1, h, A, V);
 
     factor.Initialize();
     std::cout << "factoring..." << std::endl;
     factor.Factor();
+#ifndef RELEASE
+    } catch( ... ) {
+	std::cerr << "Caught error." << std::endl;
+        DumpCallStack();
+    }
+#endif
 
-    std::cout << "applying matrix..." << std::endl;
-    factor.Apply(u);
-
-    std::cout << "applying inverse..." << std::endl;
-    factor.Apply(u, true);
+    return 0;
 }
 
-}

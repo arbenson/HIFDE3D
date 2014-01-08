@@ -21,6 +21,9 @@ extern "C" {
 
 template <typename Scalar>
 bool IsSkel(Dense<Scalar>& R, int row, double tol) {
+#ifndef RELEASE
+    CallStackEntry entry("IsSkel");
+#endif
     return std::abs(R.Get(row, row)) > tol;
 }
 
@@ -28,6 +31,9 @@ template <typename Scalar>
 void InterpDecomp(Dense<Scalar>& M, Dense<Scalar>& W,
                  std::vector<int>& skeleton_cols,
                  std::vector<int>& redundant_cols, double epsilon) {
+#ifndef RELEASE
+    CallStackEntry entry("InterpDecomp");
+#endif
     std::vector<int> jpvt;
     PivotedQRWrapper(M, jpvt);
 
@@ -83,6 +89,9 @@ void InterpDecomp(Dense<Scalar>& M, Dense<Scalar>& W,
 // float
 void PivotedQRWrapper(int m, int n, float *A, int lda, std::vector<int>& jpvt,
                       std::vector<float>& tau) {
+#ifndef RELEASE
+    CallStackEntry entry("PivotedQRWrapper");
+#endif
     int lwork = 2 * n + (n + 1) * BLOCKSIZE;
     std::vector<float> work(lwork);
     lapack::PivotedQR(m, n, A, lda, &jpvt[0], &tau[0], &work[0], lwork);
@@ -91,6 +100,9 @@ void PivotedQRWrapper(int m, int n, float *A, int lda, std::vector<int>& jpvt,
 // double
 void PivotedQRWrapper(int m, int n, double *A, int lda, std::vector<int>& jpvt,
                       std::vector<double>& tau) {
+#ifndef RELEASE
+    CallStackEntry entry("PivotedQRWrapper");
+#endif
     int lwork = 2 * n + (n + 1) * BLOCKSIZE;
     std::vector<double> work(lwork);
     lapack::PivotedQR(m, n, A, lda, &jpvt[0], &tau[0], &work[0], lwork);
@@ -100,6 +112,9 @@ void PivotedQRWrapper(int m, int n, double *A, int lda, std::vector<int>& jpvt,
 void PivotedQRWrapper(int m, int n, std::complex<float> *A, int lda,
                       std::vector<int>& jpvt,
                       std::vector< std::complex<float> >& tau) {
+#ifndef RELEASE
+    CallStackEntry entry("PivotedQRWrapper");
+#endif
     int lwork = (n + 1) * BLOCKSIZE;
     std::vector< std::complex<float> > work(lwork);
     std::vector<float> rwork(lapack::PivotedQRRealWorkSize(n));
@@ -110,6 +125,9 @@ void PivotedQRWrapper(int m, int n, std::complex<float> *A, int lda,
 void PivotedQRWrapper(int m, int n, std::complex<double> *A, int lda,
                       std::vector<int>& jpvt,
                       std::vector< std::complex<double> >& tau) {
+#ifndef RELEASE
+    CallStackEntry entry("PivotedQRWrapper");
+#endif
     int lwork = (n + 1) * BLOCKSIZE;
     std::vector< std::complex<double> > work(lwork);
     std::vector<double> rwork(lapack::PivotedQRRealWorkSize(n));
@@ -118,6 +136,9 @@ void PivotedQRWrapper(int m, int n, std::complex<double> *A, int lda,
 
 template <typename Scalar>
 void PivotedQRWrapper(Dense<Scalar>& A, std::vector<int>& jpvt) {
+#ifndef RELEASE
+    CallStackEntry entry("PivotedQRWrapper");
+#endif
     int m = A.Height();
     int n = A.Width();
     int lda = A.LDim();
@@ -131,6 +152,13 @@ void PivotedQRWrapper(Dense<Scalar>& A, std::vector<int>& jpvt) {
 // float
 void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
                      int *n, float *alpha, float *A, int *lda, float *B, int *ldb) {
+#ifndef RELEASE
+    CallStackEntry entry("TriangularSolve");
+    if (m <= 0)
+	throw std::logic_error("Invalid matrix height for triangular solve");
+    if (n <= 0)
+	throw std::logic_error("Invalid matrix width for triangular solve");
+#endif
     assert(m > 0 && n > 0);
     strsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
 }
@@ -138,6 +166,13 @@ void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
 // double
 void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
                      int *n, double *alpha, double *A, int *lda, double *B, int *ldb) {
+#ifndef RELEASE
+    CallStackEntry entry("TriangularSolve");
+    if (m <= 0)
+	throw std::logic_error("Invalid matrix height for triangular solve");
+    if (n <= 0)
+	throw std::logic_error("Invalid matrix width for triangular solve");
+#endif
     assert(m > 0 && n > 0);
     dtrsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
 }
@@ -146,6 +181,13 @@ void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
 void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
                      int *n, std::complex<float> *alpha, std::complex<float> *A,
                      int *lda, std::complex<float> *B, int *ldb) {
+#ifndef RELEASE
+    CallStackEntry entry("TriangularSolve");
+    if (m <= 0)
+	throw std::logic_error("Invalid matrix height for triangular solve");
+    if (n <= 0)
+	throw std::logic_error("Invalid matrix width for triangular solve");
+#endif
     assert(m > 0 && n > 0);
     ctrsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
 }
@@ -154,12 +196,22 @@ void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
 void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
                      int *n, std::complex<double> *alpha, std::complex<double> *A,
                      int *lda, std::complex<double> *B, int *ldb) {
+#ifndef RELEASE
+    CallStackEntry entry("TriangularSolve");
+    if (m <= 0)
+	throw std::logic_error("Invalid matrix height for triangular solve");
+    if (n <= 0)
+	throw std::logic_error("Invalid matrix width for triangular solve");
+#endif
     assert(m > 0 && n > 0);
     ztrsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
 }
 
 template <typename Scalar>
 void TriangularSolveWrapper(Dense<Scalar>& R, Dense<Scalar>& B) {
+#ifndef RELEASE
+    CallStackEntry entry("TriangularSolveWrapper");
+#endif
     // Setup all of the inputs to the lapack call
     char side = 'l';    // will be ignored
     char uplo = 'u';    // upper triangular

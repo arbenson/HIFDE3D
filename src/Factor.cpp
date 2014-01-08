@@ -8,7 +8,11 @@ namespace hifde3d {
 
 template <typename Scalar>
 void HIFFactor<Scalar>::Initialize() {
-    assert(N_ > 0);
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::Initialize");
+    if (N_ <= 0)
+	throw std::logic_error("Number of discretization points must be positive");
+#endif
     int NC = N_ + 1;
     remaining_DOFs_.resize(NC, NC, NC);
     // assert(sp_matrix_.Height() == NC * NC * NC);
@@ -30,6 +34,9 @@ void HIFFactor<Scalar>::Initialize() {
 
 template <typename Scalar>
 void HIFFactor<Scalar>::Factor() {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::Factor");
+#endif
     int NC = N_ + 1;
     int num_levels = static_cast<int>(round(log2(NC / P_))) + 1;
 
@@ -49,6 +56,9 @@ void HIFFactor<Scalar>::Factor() {
 
 template <typename Scalar>
 Index3 HIFFactor<Scalar>::Linear2TensorInd(int ind) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::Linear2TensorInd");
+#endif
     int NC = N_ + 1;
     int i = ind % NC;
     int j = ((ind - i) % (NC * NC)) / NC;
@@ -59,6 +69,9 @@ Index3 HIFFactor<Scalar>::Linear2TensorInd(int ind) {
 
 template <typename Scalar>
 int HIFFactor<Scalar>::Tensor2LinearInd(Index3 ind) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::Tensor2LinearInd");
+#endif
     int i = ind(0);
     int j = ind(1);
     int k = ind(2);
@@ -69,6 +82,9 @@ int HIFFactor<Scalar>::Tensor2LinearInd(Index3 ind) {
 
 template <typename Scalar>
 void HIFFactor<Scalar>::UpdateRemainingDOFs(int level, bool is_skel) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::UpdateRemainingDOFs");
+#endif
     std::vector<int> eliminated_DOFs;
 
     // Gather the DOFs
@@ -94,6 +110,9 @@ void HIFFactor<Scalar>::UpdateRemainingDOFs(int level, bool is_skel) {
 
 template <typename Scalar>
 void HIFFactor<Scalar>::SchurAfterID(FactorData<Scalar>& data) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::SchurAfterID");
+#endif
     std::vector<int>& global_inds = data.ind_data().global_inds();
     Dense<Scalar> submat;
     DenseSubmatrix(sp_matrix_, global_inds, global_inds, submat);
@@ -125,6 +144,9 @@ void HIFFactor<Scalar>::SchurAfterID(FactorData<Scalar>& data) {
 template <typename Scalar>
 bool HIFFactor<Scalar>::Skeletonize(Index3 cell_location, Face face,
                                     int level, FactorData<Scalar>& data) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::Skeletonize");
+#endif
     SkelIndexData skel_data;
     InteriorFaceIndexData(cell_location, face, level, skel_data);
     if (skel_data.global_cols().size() == 0) {
@@ -148,6 +170,9 @@ bool HIFFactor<Scalar>::Skeletonize(Index3 cell_location, Face face,
 
 template <typename Scalar>
 void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::LevelFactorSchur");
+#endif
     std::vector< FactorData<Scalar> >& level_data = schur_level_data_[level];
     int num_DOFs_eliminated = 0;
     for (int i = 0; i < cells_per_dir; ++i) {
@@ -173,6 +198,9 @@ void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
 
 template <typename Scalar>
 void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::LevelFactorSkel");
+#endif
     std::vector< FactorData<Scalar> >& level_data = skel_level_data_[level];
     int num_DOFs_eliminated = 0;
     for (int i = 0; i < cells_per_dir; ++i) {
@@ -231,6 +259,9 @@ void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
 
 template <typename Scalar>
 void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::UpdateMatrixAndDOFs");
+#endif
     std::vector< FactorData<Scalar> >& level_data = schur_level_data_[level];
     if (is_skel) {
         level_data = skel_level_data_[level];
@@ -273,6 +304,9 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
 
 template <typename Scalar>
 bool HIFFactor<Scalar>::IsInterior(int level, int a) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::IsInterior");
+#endif
     int width = pow2(level) * P_;
     return (a > 0 || a  < N_ || (a % width) != 0);
 }
@@ -280,6 +314,9 @@ bool HIFFactor<Scalar>::IsInterior(int level, int a) {
 
 template <typename Scalar>
 bool HIFFactor<Scalar>::IsFaceInterior(int level, Index3 ind) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::IsFaceInterior");
+#endif
     int a_int = IsInterior(level, ind(0));
     int b_int = IsInterior(level, ind(1));
     int c_int = IsInterior(level, ind(2));
@@ -290,6 +327,9 @@ bool HIFFactor<Scalar>::IsFaceInterior(int level, Index3 ind) {
 
 template <typename Scalar>
 bool HIFFactor<Scalar>::IsCellInterior(int level, Index3 ind) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::IsCellInterior");
+#endif
     return IsInterior(level, ind(0)) &&
         IsInterior(level, ind(1)) &&
         IsInterior(level, ind(2));
@@ -298,6 +338,9 @@ bool HIFFactor<Scalar>::IsCellInterior(int level, Index3 ind) {
 template <typename Scalar>
 void HIFFactor<Scalar>::InteriorCellIndexData(Index3 cell_location, int level,
                                               IndexData& data) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::InteriorCellIndexData");
+#endif
     int width = pow2(level) * P_;
     Index3 min_inds = vec3max(width * cell_location, 1);
     Index3 max_inds = vec3min(width * (cell_location + 1), N_);
@@ -323,12 +366,18 @@ void HIFFactor<Scalar>::InteriorCellIndexData(Index3 cell_location, int level,
 
 template <typename Scalar>
 bool HIFFactor<Scalar>::IsRemainingDOF(Index3 ind) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::IsRemainingDOF");
+#endif
     return remaining_DOFs_(ind(0), ind(1), ind(2));
 }
 
 template <typename Scalar>
 void HIFFactor<Scalar>::InteriorFaceDOFs(Index3 cell_location, Face face,
                                          int level, std::vector<int>& face_inds) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::InteriorFaceDOFs");
+#endif
     int width = pow2(level) * P_;
     Index3 inds = cell_location * width;
     Index3 min_inds = vec3max(width * cell_location, 1);
@@ -447,6 +496,9 @@ void HIFFactor<Scalar>::InteriorFaceDOFs(Index3 cell_location, Face face,
 template <typename Scalar>
 void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
                                               int level, SkelIndexData& data) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::InteriorFaceIndexData");
+#endif
     // TODO: When we loop over all cells, there is redundant computation.
     //       Here, we just compute what we need for the given cell.
     int width = pow2(level) * P_;

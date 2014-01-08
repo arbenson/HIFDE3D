@@ -14,6 +14,9 @@ namespace hifde3d {
 template <typename Scalar>
 void GetSkeletonVector(Vector<Scalar>& u, FactorData<Scalar>& data,
                        Vector<Scalar>& skel_vec) {
+#ifndef RELEASE
+    CallStackEntry entry("GetSkeletonVector");
+#endif
     std::vector<int> global_inds = data.global_inds();
     std::vector<int> skel_inds = data.skeleton_set();
     skel_vec.Resize(skel_inds.size());
@@ -30,6 +33,9 @@ void GetSkeletonVector(Vector<Scalar>& u, FactorData<Scalar>& data,
 template <typename Scalar>
 void GetRedundantVector(Vector<Scalar>& u, FactorData<Scalar>& data,
                         Vector<Scalar>& red_vec) {
+#ifndef RELEASE
+    CallStackEntry entry("GetRedundantVector");
+#endif
     std::vector<int> global_inds = data.global_inds();
     std::vector<int> red_inds = data.redundant_set();
     red_vec.Resize(red_inds.size());
@@ -46,6 +52,9 @@ void GetRedundantVector(Vector<Scalar>& u, FactorData<Scalar>& data,
 template <typename Scalar>
 void CopySkeletonVector(Vector<Scalar>& u, FactorData<Scalar>& data,
                         Vector<Scalar>& skel_vec) {
+#ifndef RELEASE
+    CallStackEntry entry("CopySkeletonVector");
+#endif
     std::vector<int> global_inds = data.global_inds();
     std::vector<int> skel_inds = data.skeleton_set();
     assert(skel_vec.Size() == skel_inds.size());
@@ -62,6 +71,9 @@ void CopySkeletonVector(Vector<Scalar>& u, FactorData<Scalar>& data,
 template <typename Scalar>
 void CopyRedundantVector(Vector<Scalar>& u, FactorData<Scalar>& data,
                          Vector<Scalar>& red_vec) {
+#ifndef RELEASE
+    CallStackEntry entry("CopyRedundantVector");
+#endif
     std::vector<int> global_inds = data.global_inds();
     std::vector<int> red_inds = data.redundant_set();
     assert(red_vec.Size() == red_inds.size());
@@ -92,6 +104,9 @@ template <typename Scalar>
 void UpdateSkeleton(Vector<Scalar>& u, FactorData<Scalar>& data,
                     Vector<Scalar>& u_skel, Vector<Scalar>& u_red,
                     bool adjoint, bool negative, bool is_X) {
+#ifndef RELEASE
+    CallStackEntry entry("UpdateSkeleton");
+#endif
     Scalar alpha = Scalar(1.0);
     if (negative) {
         alpha = Scalar(-1.0);
@@ -130,6 +145,9 @@ template <typename Scalar>
 void UpdateRedundant(Vector<Scalar>& u, FactorData<Scalar>& data,
                      Vector<Scalar>& u_skel, Vector<Scalar>& u_red,
                      bool adjoint, bool negative, bool is_X) {
+#ifndef RELEASE
+    CallStackEntry entry("UpdateRedundant");
+#endif
     Scalar alpha = Scalar(1.0);
     if (negative) {
         alpha = Scalar(-1.0);
@@ -153,6 +171,9 @@ void UpdateRedundant(Vector<Scalar>& u, FactorData<Scalar>& data,
 // inverse (in): if true, applies A_{22}^{-1}; otherwise, applies A_{22}
 template <typename Scalar>
 void ApplyA22(Vector<Scalar>& u, FactorData<Scalar>& data, bool inverse) {
+#ifndef RELEASE
+    CallStackEntry entry("ApplyA22");
+#endif
     Vector<Scalar> u_red;
     GetRedundantVector(u, data, u_red);
     Vector<Scalar> result(u_red.Size());
@@ -166,6 +187,9 @@ void ApplyA22(Vector<Scalar>& u, FactorData<Scalar>& data, bool inverse) {
 
 template <typename Scalar>
 void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool inverse) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::Apply");
+#endif
     int num_levels = schur_level_data_.size();
     assert(num_levels == static_cast<int>(skel_level_data_.size()));
     assert(u.Size() == N_ * N_ * N_);
@@ -249,5 +273,4 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool inverse) {
         }
     }
 }
-
 }

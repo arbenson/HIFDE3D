@@ -6,6 +6,9 @@ namespace hifde3d {
 template <typename Scalar>
 void SetupStencil(HIFFactor<Scalar>& factor, int N, double h, NumTns<Scalar>& A,
                   NumTns<Scalar>& V) {
+#ifndef RELEASE
+    CallStackEntry entry("SetupStencil");
+#endif
     Sparse<Scalar>& matrix = factor.sp_matrix();
     int NC = N + 1;
     assert(A.m() == NC && A.n() == NC && A.p() == NC);

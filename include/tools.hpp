@@ -27,7 +27,6 @@ std::ostream& operator<<(std::ostream& os, const std::pair<T,S>& a) {
   return os;
 }
 
-/*
 #ifndef RELEASE
 void PushCallStack( std::string s );
 void PopCallStack();
@@ -45,6 +44,5 @@ public:
     }
 };
 #endif  // ifndef RELEASE
-*/
 }
 #endif  // _COMMON_HPP_
