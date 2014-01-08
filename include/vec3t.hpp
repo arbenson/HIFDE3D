@@ -1,6 +1,7 @@
 #ifndef VEC3T_HPP_
 #define VEC3T_HPP_
 
+namespace hifde3d {
 using std::abs;
 
 // Common VECtor Template for 3-tuples
@@ -131,7 +132,7 @@ template <class F> inline Vec3T<F> operator+ (const Vec3T<F>& a, F scl) {
 }
 
 template <class F> inline F operator* (const Vec3T<F>& a, const Vec3T<F>& b) {
-    F sum = F(0); 
+    F sum = F(0);
     sum += a(0) * b(0);
     sum += a(1) * b(1);
     sum += a(2) * b(2);
@@ -143,8 +144,8 @@ template <class F> inline F dot (const Vec3T<F>& a, const Vec3T<F>& b) {
 template <class F> inline Vec3T<F> operator^ (const Vec3T<F>& a, const Vec3T<F>& b) {
     return Vec3T<F>(a(1)*b(2)-a(2)*b(1), a(2)*b(0)-a(0)*b(2), a(0)*b(1)-a(1)*b(0));
 }
-template <class F> inline Vec3T<F> cross (const Vec3T<F>& a, const Vec3T<F>& b) { 
-    return a^b; 
+template <class F> inline Vec3T<F> cross (const Vec3T<F>& a, const Vec3T<F>& b) {
+    return a^b;
 }
 
 //-------------New operations
@@ -169,7 +170,7 @@ template <class F> inline Vec3T<F> ewabs(const Vec3T<F>& a) {
 template <class F> inline Vec3T<F> ewmul(const Vec3T<F>&a, const Vec3T<F>& b) {
     return Vec3T<F>(a[0] * b[0], a[1] * b[1], a[2] * b[2]);
 }
-template <class F> inline Vec3T<F> ewdiv(const Vec3T<F>&a, const Vec3T<F>& b) { 
+template <class F> inline Vec3T<F> ewdiv(const Vec3T<F>&a, const Vec3T<F>& b) {
     return Vec3T<F>(a[0] / b[0], a[1] / b[1], a[2] / b[2]);
 }
 template <class F> inline Vec3T<F> ewrnd(const Vec3T<F>&a) { //round
@@ -182,7 +183,7 @@ template <class F> std::istream& operator>>(std::istream& is, Vec3T<F>& a) {
         is >> a[i];
     return is;
 }
-template <class F> std::ostream& operator<<(std::ostream& os, const Vec3T<F>& a) { 
+template <class F> std::ostream& operator<<(std::ostream& os, const Vec3T<F>& a) {
     for(int i=0; i<3; i++)
         os << a[i] << " ";
     return os;
@@ -193,5 +194,6 @@ template <class F> std::ostream& operator<<(std::ostream& os, const Vec3T<F>& a)
 typedef Vec3T<double> Point3;
 typedef Vec3T<int>    Index3;
 
+}
 #endif
 

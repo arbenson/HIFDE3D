@@ -2,11 +2,11 @@
    Copyright (c) 2011-2013 Jack Poulson, Lexing Ying,
    The University of Texas at Austin, and Stanford University
 
-   This file is part of Distributed-Memory Hierarchical Matrices (DMHM) and is
+   This file is part of Distributed-Memory Hierarchical Matrices (HIFDE3D) and is
    under the GPLv3 License, which can be found in the LICENSE file in the root
    directory, or at http://opensource.org/licenses/GPL-3.0
 */
-#include "dmhm.hpp"
+#include "hifde3d.hpp"
 
 namespace {
 
@@ -22,38 +22,38 @@ Real Householder( const int m, Real* buffer )
     }
 
     Real alpha = buffer[0];
-    Real norm = dmhm::blas::Nrm2( m-1, &buffer[1], 1 );
+    Real norm = hifde3d::blas::Nrm2( m-1, &buffer[1], 1 );
 
     Real beta;
     if( alpha <= 0 )
-        beta = dmhm::lapack::SafeNorm( alpha, norm );
+        beta = hifde3d::lapack::SafeNorm( alpha, norm );
     else
-        beta = -dmhm::lapack::SafeNorm( alpha, norm );
+        beta = -hifde3d::lapack::SafeNorm( alpha, norm );
 
     // Avoid overflow by scaling the vector
-    const Real safeMin = dmhm::lapack::MachineSafeMin<Real>() /
-                         dmhm::lapack::MachineEpsilon<Real>();
+    const Real safeMin = hifde3d::lapack::MachineSafeMin<Real>() /
+                         hifde3d::lapack::MachineEpsilon<Real>();
     int count = 0;
-    if( dmhm::Abs(beta) < safeMin )
+    if( hifde3d::Abs(beta) < safeMin )
     {
         Real invOfSafeMin = static_cast<Real>(1) / safeMin;
         do
         {
             ++count;
-            dmhm::blas::Scal( m-1, invOfSafeMin, &buffer[1], 1 );
+            hifde3d::blas::Scal( m-1, invOfSafeMin, &buffer[1], 1 );
             alpha *= invOfSafeMin;
             beta *= invOfSafeMin;
-        } while( dmhm::Abs( beta ) < safeMin );
+        } while( hifde3d::Abs( beta ) < safeMin );
 
-        norm = dmhm::blas::Nrm2( m-1, &buffer[1], 1 );
+        norm = hifde3d::blas::Nrm2( m-1, &buffer[1], 1 );
         if( alpha <= 0 )
-            beta = dmhm::lapack::SafeNorm( alpha, norm );
+            beta = hifde3d::lapack::SafeNorm( alpha, norm );
         else
-            beta = -dmhm::lapack::SafeNorm( alpha, norm );
+            beta = -hifde3d::lapack::SafeNorm( alpha, norm );
     }
 
     Real tau = ( beta - alpha ) / beta;
-    dmhm::blas::Scal( m-1, static_cast<Real>(1)/(alpha-beta), &buffer[1], 1 );
+    hifde3d::blas::Scal( m-1, static_cast<Real>(1)/(alpha-beta), &buffer[1], 1 );
 
     // Rescale the vector
     for( int j=0; j<count; ++j )
@@ -69,7 +69,7 @@ std::complex<Real> Householder( const int m, std::complex<Real>* buffer )
     typedef std::complex<Real> Scalar;
 
     Scalar alpha = buffer[0];
-    Real norm = dmhm::blas::Nrm2( m-1, &buffer[1], 1 );
+    Real norm = hifde3d::blas::Nrm2( m-1, &buffer[1], 1 );
 
     if( norm == 0 && imag(alpha) == (Real)0 )
     {
@@ -79,34 +79,34 @@ std::complex<Real> Householder( const int m, std::complex<Real>* buffer )
 
     Real beta;
     if( real(alpha) <= 0 )
-        beta = dmhm::lapack::SafeNorm( real(alpha), imag(alpha), norm );
+        beta = hifde3d::lapack::SafeNorm( real(alpha), imag(alpha), norm );
     else
-        beta = -dmhm::lapack::SafeNorm( real(alpha), imag(alpha), norm );
+        beta = -hifde3d::lapack::SafeNorm( real(alpha), imag(alpha), norm );
 
     // Avoid overflow by scaling the vector
-    const Real safeMin = dmhm::lapack::MachineSafeMin<Real>() /
-                         dmhm::lapack::MachineEpsilon<Real>();
+    const Real safeMin = hifde3d::lapack::MachineSafeMin<Real>() /
+                         hifde3d::lapack::MachineEpsilon<Real>();
     int count = 0;
-    if( dmhm::Abs(beta) < safeMin )
+    if( hifde3d::Abs(beta) < safeMin )
     {
         Real invOfSafeMin = static_cast<Real>(1) / safeMin;
         do
         {
             ++count;
-            dmhm::blas::Scal( m-1, Scalar(invOfSafeMin), &buffer[1], 1 );
+            hifde3d::blas::Scal( m-1, Scalar(invOfSafeMin), &buffer[1], 1 );
             alpha *= invOfSafeMin;
             beta *= invOfSafeMin;
-        } while( dmhm::Abs( beta ) < safeMin );
+        } while( hifde3d::Abs( beta ) < safeMin );
 
-        norm = dmhm::blas::Nrm2( m-1, &buffer[1], 1 );
+        norm = hifde3d::blas::Nrm2( m-1, &buffer[1], 1 );
         if( real(alpha) <= 0 )
-            beta = dmhm::lapack::SafeNorm( real(alpha), imag(alpha), norm );
+            beta = hifde3d::lapack::SafeNorm( real(alpha), imag(alpha), norm );
         else
-            beta = -dmhm::lapack::SafeNorm( real(alpha), imag(alpha), norm );
+            beta = -hifde3d::lapack::SafeNorm( real(alpha), imag(alpha), norm );
     }
 
     Scalar tau = Scalar( (beta-real(alpha))/beta, -imag(alpha)/beta );
-    dmhm::blas::Scal( m-1, static_cast<Scalar>(1)/(alpha-beta), &buffer[1], 1 );
+    hifde3d::blas::Scal( m-1, static_cast<Scalar>(1)/(alpha-beta), &buffer[1], 1 );
 
     // Rescale the vector
     for( int j=0; j<count; ++j )
@@ -118,7 +118,7 @@ std::complex<Real> Householder( const int m, std::complex<Real>* buffer )
 
 } // anonymous namespace
 
-namespace dmhm {
+namespace hifde3d {
 namespace hmat_tools {
 
 // Perform a QR factorization of size (s+t) x r where only the upper triangles
@@ -612,4 +612,4 @@ template void PrintPacked
   std::ostream& os );
 
 } // namespace hmat_tools
-} // namespace dmhm
+} // namespace hifde3d

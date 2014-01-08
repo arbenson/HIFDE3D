@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+namespace hifde3d {
+
 template <typename Scalar>
 void HIFFactor<Scalar>::Initialize() {
     assert(N_ > 0);
@@ -34,7 +36,7 @@ void HIFFactor<Scalar>::Factor() {
 
         LevelFactorSchur(cells_per_dir, level);
         UpdateMatrixAndDOFs(level, false);
-        
+
         if (level < num_levels - 1) {
             LevelFactorSkel(cells_per_dir, level);
             UpdateMatrixAndDOFs(level, true);
@@ -90,12 +92,12 @@ void HIFFactor<Scalar>::UpdateRemainingDOFs(int level, bool is_skel) {
 template <typename Scalar>
 void HIFFactor<Scalar>::SchurAfterID(FactorData<Scalar>& data) {
     std::vector<int>& global_inds = data.ind_data().global_inds();
-    dmhm::Dense<Scalar> submat;
+    Dense<Scalar> submat;
     DenseSubmatrix(sp_matrix_, global_inds, global_inds, submat);
 
     // Start with identity
     int size = global_inds.size();
-    dmhm::Dense<Scalar> Rot(size, size, dmhm::GENERAL);
+    Dense<Scalar> Rot(size, size, GENERAL);
     for (int i = 0; i < size; ++i) {
         Rot.Set(i, i, Scalar(1));
     }
@@ -109,11 +111,11 @@ void HIFFactor<Scalar>::SchurAfterID(FactorData<Scalar>& data) {
         }
     }
 
-    dmhm::Dense<Scalar> tmp(submat.Height(), Rot.Width(), dmhm::GENERAL);
-    dmhm::hmat_tools::Multiply(Scalar(1), submat, Rot, tmp);
-    
-    dmhm::Dense<Scalar> result(Rot.Height(), tmp.Width(), dmhm::GENERAL);
-    dmhm::hmat_tools::AdjointMultiply(Scalar(1), Rot, tmp, result);
+    Dense<Scalar> tmp(submat.Height(), Rot.Width(), GENERAL);
+    hmat_tools::Multiply(Scalar(1), submat, Rot, tmp);
+
+    Dense<Scalar> result(Rot.Height(), tmp.Width(), GENERAL);
+    hmat_tools::AdjointMultiply(Scalar(1), Rot, tmp, result);
     Schur(result, data);
 }
 
@@ -125,8 +127,8 @@ bool HIFFactor<Scalar>::Skeletonize(Index3 cell_location, Face face,
     if (skel_data.global_cols().size() == 0) {
 	return false;    // No face here.
     }
-    
-    dmhm::Dense<Scalar> submat;
+
+    Dense<Scalar> submat;
     DenseSubmatrix(sp_matrix_, skel_data.global_rows(), skel_data.global_cols(), submat);
     data.set_face(face);
     std::vector<int>& cols = skel_data.global_cols();
@@ -152,10 +154,10 @@ void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
                 level_data.push_back(tmp);
                 FactorData<Scalar>& factor_data = level_data[level_data.size() - 1];
                 InteriorCellIndexData(Index3(i, j, k), level, factor_data.ind_data());
-                
+
                 // Get local data from the global matrix
                 std::vector<int>& global_inds = factor_data.ind_data().global_inds();
-                dmhm::Dense<Scalar> submat;
+                Dense<Scalar> submat;
                 DenseSubmatrix(sp_matrix_, global_inds, global_inds, submat);
                 Schur(submat, factor_data);
 		num_DOFs_eliminated += factor_data.NumDOFsEliminated();
@@ -542,7 +544,7 @@ template <typename Scalar>
 double HIFFactor<Scalar>::epsilon() { return epsilon_; }
 
 template <typename Scalar>
-dmhm::Sparse<Scalar>& HIFFactor<Scalar>::sp_matrix() { return sp_matrix_; }
+Sparse<Scalar>& HIFFactor<Scalar>::sp_matrix() { return sp_matrix_; }
 
 
 // Declarations
@@ -550,3 +552,5 @@ template class HIFFactor<float>;
 template class HIFFactor<double>;
 template class HIFFactor< std::complex<float> >;
 template class HIFFactor< std::complex<double> >;
+
+}

@@ -1,8 +1,10 @@
 #include "InterpDecomp.hpp"
-#include "dmhm/core/dense.hpp"
-#include "dmhm/core/lapack.hpp"
+#include "hifde3d/core/dense.hpp"
+#include "hifde3d/core/lapack.hpp"
 
 #include "assert.h"
+
+namespace hifde3d {
 
 extern "C" {
     void strsm_(char *side, char *uplo, char *transa, char *diag, int *m, int *n,
@@ -18,12 +20,12 @@ extern "C" {
 }
 
 template <typename Scalar>
-bool IsSkel(dmhm::Dense<Scalar>& R, int row, double tol) {
+bool IsSkel(Dense<Scalar>& R, int row, double tol) {
     return std::abs(R.Get(row, row)) > tol;
 }
 
 template <typename Scalar>
-void InterpDecomp(dmhm::Dense<Scalar>& M, dmhm::Dense<Scalar>& W,
+void InterpDecomp(Dense<Scalar>& M, Dense<Scalar>& W,
                  std::vector<int>& skeleton_cols,
                  std::vector<int>& redundant_cols, double epsilon) {
     std::vector<int> jpvt;
@@ -60,7 +62,7 @@ void InterpDecomp(dmhm::Dense<Scalar>& M, dmhm::Dense<Scalar>& W,
         }
     }
 
-    dmhm::Dense<Scalar> R_skel(skel.size(), skel.size(), dmhm::GENERAL);
+    Dense<Scalar> R_skel(skel.size(), skel.size(), GENERAL);
     for (int m = 0; m < R_skel.Height(); ++m) {
         for (int n = 0; n < R_skel.Width(); ++n) {
             int i = skel[m];
@@ -83,7 +85,7 @@ void PivotedQRWrapper(int m, int n, float *A, int lda, std::vector<int>& jpvt,
                       std::vector<float>& tau) {
     int lwork = 2 * n + (n + 1) * BLOCKSIZE;
     std::vector<float> work(lwork);
-    dmhm::lapack::PivotedQR(m, n, A, lda, &jpvt[0], &tau[0], &work[0], lwork);
+    lapack::PivotedQR(m, n, A, lda, &jpvt[0], &tau[0], &work[0], lwork);
 }
 
 // double
@@ -91,7 +93,7 @@ void PivotedQRWrapper(int m, int n, double *A, int lda, std::vector<int>& jpvt,
                       std::vector<double>& tau) {
     int lwork = 2 * n + (n + 1) * BLOCKSIZE;
     std::vector<double> work(lwork);
-    dmhm::lapack::PivotedQR(m, n, A, lda, &jpvt[0], &tau[0], &work[0], lwork);
+    lapack::PivotedQR(m, n, A, lda, &jpvt[0], &tau[0], &work[0], lwork);
 }
 
 // complex float
@@ -100,8 +102,8 @@ void PivotedQRWrapper(int m, int n, std::complex<float> *A, int lda,
                       std::vector< std::complex<float> >& tau) {
     int lwork = (n + 1) * BLOCKSIZE;
     std::vector< std::complex<float> > work(lwork);
-    std::vector<float> rwork(dmhm::lapack::PivotedQRRealWorkSize(n));
-    dmhm::lapack::PivotedQR(m, n, A, lda, &jpvt[0], &tau[0], &work[0], lwork, &rwork[0]);
+    std::vector<float> rwork(lapack::PivotedQRRealWorkSize(n));
+    lapack::PivotedQR(m, n, A, lda, &jpvt[0], &tau[0], &work[0], lwork, &rwork[0]);
 }
 
 // complex double
@@ -110,12 +112,12 @@ void PivotedQRWrapper(int m, int n, std::complex<double> *A, int lda,
                       std::vector< std::complex<double> >& tau) {
     int lwork = (n + 1) * BLOCKSIZE;
     std::vector< std::complex<double> > work(lwork);
-    std::vector<double> rwork(dmhm::lapack::PivotedQRRealWorkSize(n));
-    dmhm::lapack::PivotedQR(m, n, A, lda, &jpvt[0], &tau[0], &work[0], lwork, &rwork[0]);
+    std::vector<double> rwork(lapack::PivotedQRRealWorkSize(n));
+    lapack::PivotedQR(m, n, A, lda, &jpvt[0], &tau[0], &work[0], lwork, &rwork[0]);
 }
 
 template <typename Scalar>
-void PivotedQRWrapper(dmhm::Dense<Scalar>& A, std::vector<int>& jpvt) {
+void PivotedQRWrapper(Dense<Scalar>& A, std::vector<int>& jpvt) {
     int m = A.Height();
     int n = A.Width();
     int lda = A.LDim();
@@ -157,7 +159,7 @@ void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
 }
 
 template <typename Scalar>
-void TriangularSolveWrapper(dmhm::Dense<Scalar>& R, dmhm::Dense<Scalar>& B) {
+void TriangularSolveWrapper(Dense<Scalar>& R, Dense<Scalar>& B) {
     // Setup all of the inputs to the lapack call
     char side = 'l';    // will be ignored
     char uplo = 'u';    // upper triangular
@@ -175,36 +177,37 @@ void TriangularSolveWrapper(dmhm::Dense<Scalar>& R, dmhm::Dense<Scalar>& B) {
 
 
 // Declarations of possible templated types
-template void InterpDecomp(dmhm::Dense<float>& M, dmhm::Dense<float>& W,
+template void InterpDecomp(Dense<float>& M, Dense<float>& W,
 			   std::vector<int>& skeleton_cols,
                            std::vector<int>& redundant_cols,
 			   double epsilon);
-template void InterpDecomp(dmhm::Dense<double>& M, dmhm::Dense<double>& W,
+template void InterpDecomp(Dense<double>& M, Dense<double>& W,
 			   std::vector<int>& skeleton_cols,
                            std::vector<int>& redundant_cols,
 			   double epsilon);
-template void InterpDecomp(dmhm::Dense< std::complex<float> >& M,
-                           dmhm::Dense< std::complex<float> >& W,
+template void InterpDecomp(Dense< std::complex<float> >& M,
+                           Dense< std::complex<float> >& W,
 			   std::vector<int>& skeleton_cols,
                            std::vector<int>& redundant_cols,
 			   double epsilon);
-template void InterpDecomp(dmhm::Dense< std::complex<double> >& M,
-                           dmhm::Dense< std::complex<double> >& W,
+template void InterpDecomp(Dense< std::complex<double> >& M,
+                           Dense< std::complex<double> >& W,
 			   std::vector<int>& skeleton_cols,
                            std::vector<int>& redundant_cols,
 			   double epsilon);
 
-template void PivotedQRWrapper(dmhm::Dense<float>& A, std::vector<int>& jpvt);
-template void PivotedQRWrapper(dmhm::Dense<double>& A, std::vector<int>& jpvt);
-template void PivotedQRWrapper(dmhm::Dense< std::complex<float> >& A,
+template void PivotedQRWrapper(Dense<float>& A, std::vector<int>& jpvt);
+template void PivotedQRWrapper(Dense<double>& A, std::vector<int>& jpvt);
+template void PivotedQRWrapper(Dense< std::complex<float> >& A,
                                std::vector<int>& jpvt);
-template void PivotedQRWrapper(dmhm::Dense< std::complex<double> >& A,
+template void PivotedQRWrapper(Dense< std::complex<double> >& A,
                                std::vector<int>& jpvt);
 
-template void TriangularSolveWrapper(dmhm::Dense<float>& R, dmhm::Dense<float>& B);
-template void TriangularSolveWrapper(dmhm::Dense<double>& R, dmhm::Dense<double>& B);
-template void TriangularSolveWrapper(dmhm::Dense< std::complex<float> >& R,
-                                     dmhm::Dense< std::complex<float> >& B);
-template void TriangularSolveWrapper(dmhm::Dense< std::complex<double> >& R,
-                                     dmhm::Dense< std::complex<double> >& B);
+template void TriangularSolveWrapper(Dense<float>& R, Dense<float>& B);
+template void TriangularSolveWrapper(Dense<double>& R, Dense<double>& B);
+template void TriangularSolveWrapper(Dense< std::complex<float> >& R,
+                                     Dense< std::complex<float> >& B);
+template void TriangularSolveWrapper(Dense< std::complex<double> >& R,
+                                     Dense< std::complex<double> >& B);
 
+}

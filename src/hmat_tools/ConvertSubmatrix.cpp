@@ -2,15 +2,16 @@
    Copyright (c) 2011-2013 Jack Poulson, Lexing Ying,
    The University of Texas at Austin, and Stanford University
 
-   This file is part of Distributed-Memory Hierarchical Matrices (DMHM) and is
+   This file is part of Distributed-Memory Hierarchical Matrices (HIFDE3D) and is
    under the GPLv3 License, which can be found in the LICENSE file in the root
    directory, or at http://opensource.org/licenses/GPL-3.0
 */
-#include "dmhm.hpp"
+#include "hifde3d.hpp"
 
-namespace dmhm {
+namespace hifde3d {
 namespace hmat_tools {
 
+/*
 template<typename Scalar>
 void ConvertSubmatrix
 ( Dense<Scalar>& D, const Sparse<Scalar>& S,
@@ -152,5 +153,6 @@ template void ConvertSubmatrix
   const Sparse<std::complex<double> >& S,
   int iStart, int iEnd, int jStart, int jEnd );
 
+*/
 } // namespace hmat_tools
-} // namespace dmhm
+} // namespace hifde3d

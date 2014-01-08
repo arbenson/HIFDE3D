@@ -2,11 +2,13 @@
 #define SCHUR_HPP_
 
 #include "data.hpp"
-#include "dmhm/core/dense.hpp"
-#include "dmhm/core/hmat_tools.hpp"
-#include "dmhm/core/sparse.hpp"
+#include "hifde3d/core/dense.hpp"
+#include "hifde3d/core/hmat_tools.hpp"
+#include "hifde3d/core/sparse.hpp"
 
 #include <vector>
+
+namespace hifde3d {
 
 // Extract a dense submatrix from a dense matrix.
 // TODO: this function could be more efficient
@@ -16,8 +18,8 @@
 // cols (in): column indices
 // submatrix (out): sp_matrix(rows, cols) as a dense matrix
 template <typename Scalar>
-void DenseSubmatrix(const dmhm::Dense<Scalar>& matrix, const std::vector<int>& rows,
-                    const std::vector<int>& cols, dmhm::Dense<Scalar>& submatrix) {
+void DenseSubmatrix(const Dense<Scalar>& matrix, const std::vector<int>& rows,
+                    const std::vector<int>& cols, Dense<Scalar>& submatrix) {
     submatrix.Resize(rows.size(), cols.size());
     for (size_t i = 0; i < rows.size(); ++i) {
         for (size_t j = 0; i < cols.size(); ++i) {
@@ -33,8 +35,8 @@ void DenseSubmatrix(const dmhm::Dense<Scalar>& matrix, const std::vector<int>& r
 // cols (in): column indices
 // submatrix (out): sp_matrix(rows, cols) as a dense matrix
 template <typename Scalar>
-void DenseSubmatrix(const dmhm::Sparse<Scalar>& matrix, const std::vector<int>& rows,
-                    const std::vector<int>& cols, dmhm::Dense<Scalar>& submatrix) {
+void DenseSubmatrix(const Sparse<Scalar>& matrix, const std::vector<int>& rows,
+                    const std::vector<int>& cols, Dense<Scalar>& submatrix) {
     // TODO: Implement this function
 }
 
@@ -51,19 +53,19 @@ void DenseSubmatrix(const dmhm::Sparse<Scalar>& matrix, const std::vector<int>& 
 //             and Schur complement
 // return value: 0 on failure, 1 on success
 template <typename Scalar>
-void Schur(dmhm::Dense<Scalar>& matrix, FactorData<Scalar>& data) {
+void Schur(Dense<Scalar>& matrix, FactorData<Scalar>& data) {
     std::vector<int> DOF_set = data.ind_data().DOF_set();
     std::vector<int> DOF_set_interaction = data.ind_data().DOF_set_interaction();
 
-    dmhm::Dense<Scalar> A12;
+    Dense<Scalar> A12;
     DenseSubmatrix(matrix, DOF_set_interaction, DOF_set, A12);
-    dmhm::Dense<Scalar> A21;
+    Dense<Scalar> A21;
     DenseSubmatrix(matrix, DOF_set, DOF_set_interaction, A21);
     DenseSubmatrix(matrix, DOF_set, DOF_set, data.A_22());
     DenseSubmatrix(matrix, DOF_set, DOF_set, data.A_22_inv());
     // TODO: probably faster to copy A_22 into A_22_inv, rather than reading
     // from the matrix again
-    dmhm::hmat_tools::Invert(data.A_22_inv());
+    hmat_tools::Invert(data.A_22_inv());
 
     // X = A_22^{-1}A_{21}
     // S = -A_{12}A_22^{-1}A_{21} = -A_{12}X
@@ -72,9 +74,10 @@ void Schur(dmhm::Dense<Scalar>& matrix, FactorData<Scalar>& data) {
     // A_{11}^{-1}.
 
     data.X_mat().Resize(data.A_22_inv().Height(), A21.Width());
-    dmhm::hmat_tools::Multiply(Scalar(1), data.A_22_inv(), A21, data.X_mat());
+    hmat_tools::Multiply(Scalar(1), data.A_22_inv(), A21, data.X_mat());
     data.Schur_comp().Resize(A12.Height(), data.X_mat().Width());
-    dmhm::hmat_tools::Multiply(Scalar(-1), A12, data.X_mat(), data.Schur_comp());
+    hmat_tools::Multiply(Scalar(-1), A12, data.X_mat(), data.Schur_comp());
 }
 
+}
 #endif  // ifndef SCHUR_HPP_

@@ -6,20 +6,22 @@
 
 std::stack<std::string> callStack;
 
-void PushCallStack( std::string s ) { 
+namespace hifde3d {
+
+void PushCallStack( std::string s ) {
 #ifdef HAVE_OPENMP
     if( omp_get_thread_num() != 0 )
         return;
 #endif // HAVE_OPENMP
-    ::callStack.push(s); 
+    ::callStack.push(s);
 }
 
-void PopCallStack() { 
+void PopCallStack() {
 #ifdef HAVE_OPENMP
     if( omp_get_thread_num() != 0 )
         return;
 #endif // HAVE_OPENMP
-    ::callStack.pop(); 
+    ::callStack.pop();
 }
 
 void DumpCallStack(std::ostream& os) {
@@ -32,22 +34,6 @@ void DumpCallStack(std::ostream& os) {
     os.flush();
 }
 
-namespace dmhm {
-void PushCallStack( std::string s ) { 
-#ifdef HAVE_OPENMP
-    if( omp_get_thread_num() != 0 )
-        return;
-#endif // HAVE_OPENMP
-    ::callStack.push(s); 
-}
-
-void PopCallStack() { 
-#ifdef HAVE_OPENMP
-    if( omp_get_thread_num() != 0 )
-        return;
-#endif // HAVE_OPENMP
-    ::callStack.pop(); 
-}
-
-}  // namespace dmhm
 #endif  // RELEASE
+
+}

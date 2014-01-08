@@ -2,13 +2,13 @@
    Copyright (c) 2011-2013 Jack Poulson, Lexing Ying,
    The University of Texas at Austin, and Stanford University
 
-   This file is part of Distributed-Memory Hierarchical Matrices (DMHM) and is
+   This file is part of Distributed-Memory Hierarchical Matrices (HIFDE3D) and is
    under the GPLv3 License, which can be found in the LICENSE file in the root
    directory, or at http://opensource.org/licenses/GPL-3.0
 */
 #pragma once
-#ifndef DMHM_HMAT_TOOLS_HPP
-#define DMHM_HMAT_TOOLS_HPP 1
+#ifndef HIFDE3D_HMAT_TOOLS_HPP
+#define HIFDE3D_HMAT_TOOLS_HPP 1
 
 #include <complex>
 #include <cmath>
@@ -28,7 +28,7 @@
 
 #include "random.hpp"
 
-namespace dmhm {
+namespace hifde3d {
 namespace hmat_tools {
 
 //----------------------------------------------------------------------------//
@@ -38,14 +38,6 @@ namespace hmat_tools {
 // actually require a hierarchical data structure. This is meant to maximize  //
 // the reusability of this code.                                              //
 //----------------------------------------------------------------------------//
-
-/*
- *  Convert a subset of a sparse matrix to dense/low-rank form
- */
-template<typename Scalar>
-void ConvertSubmatrix
-( Dense<Scalar>& D, const Sparse<Scalar>& S,
-  int iStart, int jStart, int height, int width );
 
 /*
  *  Generalized addition of two dense/low-rank matrices, C := alpha A + beta B
@@ -1034,6 +1026,6 @@ void Scale( Scalar alpha, LowRank<Scalar>& F )
 
 
 } // namespace hmat_tools
-} // namespace dmhm
+} // namespace hifde3d
 
-#endif // ifndef DMHM_HMAT_TOOLS_HPP
+#endif // ifndef HIFDE3D_HMAT_TOOLS_HPP

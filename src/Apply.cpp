@@ -1,7 +1,8 @@
 #include "Factor.hpp"
 #include "data.hpp"
-#include "dmhm/core/vector.hpp"
+#include "hifde3d/core/vector.hpp"
 
+namespace hifde3d {
 // Obtain u_skel = u(skel), where skel is the set of skeleton DOFs.
 // Here, 'skeleton DOFs' refers to DOFs _not_ being eliminated.
 // The skeleton points could be the interior of faces _or_ the skeleton
@@ -11,8 +12,8 @@
 // data (in): factor data that contains the skeleton indices
 // skel_vec (out): u at the skeleton points
 template <typename Scalar>
-void GetSkeletonVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
-                       dmhm::Vector<Scalar>& skel_vec) {
+void GetSkeletonVector(Vector<Scalar>& u, FactorData<Scalar>& data,
+                       Vector<Scalar>& skel_vec) {
     std::vector<int> global_inds = data.global_inds();
     std::vector<int> skel_inds = data.skeleton_set();
     skel_vec.Resize(skel_inds.size());
@@ -27,8 +28,8 @@ void GetSkeletonVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
 // data (in): factor data that contains the redundant indices
 // skel_vec (out): u at the skeleton points
 template <typename Scalar>
-void GetRedundantVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
-                        dmhm::Vector<Scalar>& red_vec) {
+void GetRedundantVector(Vector<Scalar>& u, FactorData<Scalar>& data,
+                        Vector<Scalar>& red_vec) {
     std::vector<int> global_inds = data.global_inds();
     std::vector<int> red_inds = data.redundant_set();
     red_vec.Resize(red_inds.size());
@@ -43,8 +44,8 @@ void GetRedundantVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
 // data (in): factor data containing skeleton indices
 // skel_vec (in): u at the skeleton points, after updating
 template <typename Scalar>
-void CopySkeletonVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
-                        dmhm::Vector<Scalar>& skel_vec) {
+void CopySkeletonVector(Vector<Scalar>& u, FactorData<Scalar>& data,
+                        Vector<Scalar>& skel_vec) {
     std::vector<int> global_inds = data.global_inds();
     std::vector<int> skel_inds = data.skeleton_set();
     assert(skel_vec.Size() == skel_inds.size());
@@ -59,8 +60,8 @@ void CopySkeletonVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
 // data (in): factor data containing redundant indices
 // red_vec (in): u at the redundant points, after updating
 template <typename Scalar>
-void CopyRedundantVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
-                         dmhm::Vector<Scalar>& red_vec) {
+void CopyRedundantVector(Vector<Scalar>& u, FactorData<Scalar>& data,
+                         Vector<Scalar>& red_vec) {
     std::vector<int> global_inds = data.global_inds();
     std::vector<int> red_inds = data.redundant_set();
     assert(red_vec.Size() == red_inds.size());
@@ -88,21 +89,21 @@ void CopyRedundantVector(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
 // negative (in): if true, alpha = -1; otherwise, alpha = 1
 // is_X (in): if true, A = data.X_mat(); otherwise, A = data.W_mat()
 template <typename Scalar>
-void UpdateSkeleton(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
-                    dmhm::Vector<Scalar>& u_skel, dmhm::Vector<Scalar>& u_red, 
+void UpdateSkeleton(Vector<Scalar>& u, FactorData<Scalar>& data,
+                    Vector<Scalar>& u_skel, Vector<Scalar>& u_red,
                     bool adjoint, bool negative, bool is_X) {
     Scalar alpha = Scalar(1.0);
     if (negative) {
         alpha = Scalar(-1.0);
     }
-    dmhm::Dense<Scalar>& A = data.W_mat();
+    Dense<Scalar>& A = data.W_mat();
     if (is_X) {
         A = data.X_mat();
     }
     if (adjoint) {
-        dmhm::hmat_tools::AdjointMultiply(alpha, A, u_red, Scalar(1.0), u_skel);
+        hmat_tools::AdjointMultiply(alpha, A, u_red, Scalar(1.0), u_skel);
     } else {
-        dmhm::hmat_tools::Multiply(alpha, A, u_red, Scalar(1.0), u_skel);
+        hmat_tools::Multiply(alpha, A, u_red, Scalar(1.0), u_skel);
     }
     CopySkeletonVector(u, data, u_skel);
 }
@@ -126,53 +127,53 @@ void UpdateSkeleton(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
 // negative (in): if true, alpha = -1; otherwise, alpha = 1
 // is_X (in): if true, A = data.X_mat(); otherwise, A = data.W_mat()
 template <typename Scalar>
-void UpdateRedundant(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data,
-                     dmhm::Vector<Scalar>& u_skel, dmhm::Vector<Scalar>& u_red, 
+void UpdateRedundant(Vector<Scalar>& u, FactorData<Scalar>& data,
+                     Vector<Scalar>& u_skel, Vector<Scalar>& u_red,
                      bool adjoint, bool negative, bool is_X) {
     Scalar alpha = Scalar(1.0);
     if (negative) {
         alpha = Scalar(-1.0);
     }
-    dmhm::Dense<Scalar>& A = data.W_mat();
+    Dense<Scalar>& A = data.W_mat();
     if (is_X) {
         A = data.X_mat();
     }
     if (adjoint) {
-        dmhm::hmat_tools::AdjointMultiply(alpha, A, u_skel, Scalar(1.0), u_red);
+        hmat_tools::AdjointMultiply(alpha, A, u_skel, Scalar(1.0), u_red);
     } else {
-        dmhm::hmat_tools::Multiply(alpha, A, u_skel, Scalar(1.0), u_red);
+        hmat_tools::Multiply(alpha, A, u_skel, Scalar(1.0), u_red);
     }
     CopyRedundantVector(u, data, u_red);
 }
 
 // Apply A_{22} or A_{22}^{-1} to the redundant DOFs.
-// 
-// u (out): vector that gets updated 
+//
+// u (out): vector that gets updated
 // data (in): factorization data that contains the redundant indices, A_{22}, and A_{22}^{-1}
 // inverse (in): if true, applies A_{22}^{-1}; otherwise, applies A_{22}
 template <typename Scalar>
-void ApplyA22(dmhm::Vector<Scalar>& u, FactorData<Scalar>& data, bool inverse) {
-    dmhm::Vector<Scalar> u_red;
+void ApplyA22(Vector<Scalar>& u, FactorData<Scalar>& data, bool inverse) {
+    Vector<Scalar> u_red;
     GetRedundantVector(u, data, u_red);
-    dmhm::Vector<Scalar> result(u_red.Size());
+    Vector<Scalar> result(u_red.Size());
     if (inverse) {
-        dmhm::hmat_tools::Multiply(Scalar(1.0), data.A_22_inv(), u_red, result);
+        hmat_tools::Multiply(Scalar(1.0), data.A_22_inv(), u_red, result);
     } else {
-        dmhm::hmat_tools::Multiply(Scalar(1.0), data.A_22(), u_red, result);
+        hmat_tools::Multiply(Scalar(1.0), data.A_22(), u_red, result);
     }
     CopyRedundantVector(u, data, result);
 }
 
 template <typename Scalar>
-void HIFFactor<Scalar>::Apply(dmhm::Vector<Scalar>& u, bool inverse) {
+void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool inverse) {
     int num_levels = schur_level_data_.size();
     assert(num_levels == static_cast<int>(skel_level_data_.size()));
     assert(u.Size() == N_ * N_ * N_);
-    
+
     for (int level = 0; level < num_levels - 1; ++level) {
         for (size_t j = 0; j < schur_level_data_[level].size(); ++j) {
             FactorData<Scalar>& data = schur_level_data_[level][j];
-            dmhm::Vector<Scalar> u_skel, u_red;
+            Vector<Scalar> u_skel, u_red;
             GetSkeletonVector(u, data, u_skel);
             GetRedundantVector(u, data, u_red);
             if (inverse) {
@@ -185,7 +186,7 @@ void HIFFactor<Scalar>::Apply(dmhm::Vector<Scalar>& u, bool inverse) {
         }
         for (size_t j = 0; j < skel_level_data_[level].size(); ++j) {
             FactorData<Scalar>& data = skel_level_data_[level][j];
-            dmhm::Vector<Scalar> u_skel, u_red;
+            Vector<Scalar> u_skel, u_red;
             GetSkeletonVector(u, data, u_skel);
             GetRedundantVector(u, data, u_red);
             if (inverse) {
@@ -218,7 +219,7 @@ void HIFFactor<Scalar>::Apply(dmhm::Vector<Scalar>& u, bool inverse) {
     for (int level = num_levels - 2; level >= 0; --level) {
         for (size_t j = 0; j < skel_level_data_[level].size(); ++j) {
             FactorData<Scalar>& data = skel_level_data_[level][j];
-            dmhm::Vector<Scalar> u_skel, u_red;
+            Vector<Scalar> u_skel, u_red;
             GetSkeletonVector(u, data, u_skel);
             GetRedundantVector(u, data, u_red);
             if (inverse) {
@@ -235,7 +236,7 @@ void HIFFactor<Scalar>::Apply(dmhm::Vector<Scalar>& u, bool inverse) {
         }
         for (size_t j = 0; j < schur_level_data_[level].size(); ++j) {
             FactorData<Scalar>& data = schur_level_data_[level][j];
-            dmhm::Vector<Scalar> u_skel, u_red;
+            Vector<Scalar> u_skel, u_red;
             GetSkeletonVector(u, data, u_skel);
             GetRedundantVector(u, data, u_red);
             if (inverse) {
@@ -247,4 +248,6 @@ void HIFFactor<Scalar>::Apply(dmhm::Vector<Scalar>& u, bool inverse) {
             }
         }
     }
+}
+
 }

@@ -2,13 +2,13 @@
    Copyright (c) 2011-2013 Jack Poulson, Lexing Ying,
    The University of Texas at Austin, and Stanford University
 
-   This file is part of Distributed-Memory Hierarchical Matrices (DMHM) and is
+   This file is part of Distributed-Memory Hierarchical Matrices (HIFDE3D) and is
    under the GPLv3 License, which can be found in the LICENSE file in the root
    directory, or at http://opensource.org/licenses/GPL-3.0
 */
 #pragma once
-#ifndef DMHM_ENVIRONMENT_HPP
-#define DMHM_ENVIRONMENT_HPP 1
+#ifndef HIFDE3D_ENVIRONMENT_HPP
+#define HIFDE3D_ENVIRONMENT_HPP 1
 
 #include "mpi.h"
 #include <algorithm>
@@ -25,13 +25,13 @@
 #include <utility>
 #include <vector>
 
-#include "dmhm/config.h"
+#include "hifde3d/config.h"
 
-#include "dmhm/core/mpi.hpp"
-#include "dmhm/core/choice.hpp"
-#include "dmhm/core/mpi_choice.hpp"
+#include "hifde3d/core/mpi.hpp"
+#include "hifde3d/core/choice.hpp"
+#include "hifde3d/core/mpi_choice.hpp"
 
-namespace dmhm {
+namespace hifde3d {
 
 bool Initialized();
 void Initialize( int& argc, char**& argv );
@@ -226,7 +226,7 @@ template<typename Real>
 struct Base<std::complex<Real> >
 { typedef Real type; };
 
-#define BASE(F) typename dmhm::Base<F>::type
+#define BASE(F) typename hifde3d::Base<F>::type
 
 // Create a wrappers around real and std::complex<real> types so that they
 // can be conveniently printed in a more Matlab-compatible format.
@@ -305,6 +305,6 @@ inline void AddToMap
         it->second += value;
 }
 
-} // namespace dmhm
+} // namespace hifde3d
 
-#endif // ifndef DMHM_ENVIRONMENT_HPP
+#endif // ifndef HIFDE3D_ENVIRONMENT_HPP

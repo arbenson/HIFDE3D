@@ -9,6 +9,8 @@
 
 #include <assert.h>
 
+namespace hifde3d {
+
 typedef std::complex<double> cpx;
 
 inline int pow2(int l) { assert(l >= 0); return (1 << l); }
@@ -25,6 +27,7 @@ std::ostream& operator<<(std::ostream& os, const std::pair<T,S>& a) {
   return os;
 }
 
+/*
 #ifndef RELEASE
 void PushCallStack( std::string s );
 void PopCallStack();
@@ -32,15 +35,16 @@ void DumpCallStack( std::ostream& os=std::cerr );
 
 class CallStackEntry {
 public:
-    CallStackEntry( std::string s ) { 
+    CallStackEntry( std::string s ) {
         if( !std::uncaught_exception() )
-            PushCallStack(s); 
+            PushCallStack(s);
     }
-    ~CallStackEntry() { 
-        if( !std::uncaught_exception() ) 
-            PopCallStack(); 
+    ~CallStackEntry() {
+        if( !std::uncaught_exception() )
+            PopCallStack();
     }
 };
 #endif  // ifndef RELEASE
-
+*/
+}
 #endif  // _COMMON_HPP_

@@ -1,5 +1,7 @@
 #include "Factor.hpp"
 
+namespace hifde3d {
+
 int main() {
     HIFFactor< std::complex<double> > factor1;
     factor1.set_epsilon(1e-3);
@@ -20,4 +22,6 @@ int main() {
     factor4.set_epsilon(1e-3);
     factor4.set_N(32);
     factor4.set_P(4);
+}
+
 }

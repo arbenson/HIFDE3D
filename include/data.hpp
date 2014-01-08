@@ -1,10 +1,12 @@
 #ifndef DATA_HPP_
 #define DATA_HPP_
 
-#include "dmhm/core/dense.hpp"
+#include "hifde3d/core/dense.hpp"
 
 // Faces of a cube
 enum Face {TOP=0, BOTTOM, RIGHT, LEFT, FRONT, BACK};
+
+namespace hifde3d {
 
 class IndexData {
 public:
@@ -59,11 +61,11 @@ private:
 template <typename Scalar>
 class FactorData {
 public:
-    dmhm::Dense<Scalar>& A_22() { return A_22_; }
-    dmhm::Dense<Scalar>& A_22_inv() { return A_22_inv_; }
-    dmhm::Dense<Scalar>& X_mat() { return X_mat_; }
-    dmhm::Dense<Scalar>& Schur_comp() { return Schur_comp_; }
-    dmhm::Dense<Scalar>& W_mat() { return W_mat_; }
+    Dense<Scalar>& A_22() { return A_22_; }
+    Dense<Scalar>& A_22_inv() { return A_22_inv_; }
+    Dense<Scalar>& X_mat() { return X_mat_; }
+    Dense<Scalar>& Schur_comp() { return Schur_comp_; }
+    Dense<Scalar>& W_mat() { return W_mat_; }
 
     int NumDOFsEliminated() { return ind_data_.DOF_set().size(); }
 
@@ -73,12 +75,13 @@ public:
 
 private:
     IndexData ind_data_;
-    dmhm::Dense<Scalar> A_22_;        // matrix restricted to interactions
-    dmhm::Dense<Scalar> A_22_inv_;    // explicit inverse of A_22
-    dmhm::Dense<Scalar> X_mat_;       // A_22_inv * A_21
-    dmhm::Dense<Scalar> Schur_comp_;  // -A_12 * X_mat
-    dmhm::Dense<Scalar> W_mat_;       // Interpolative factor (only for Skel)
+    Dense<Scalar> A_22_;        // matrix restricted to interactions
+    Dense<Scalar> A_22_inv_;    // explicit inverse of A_22
+    Dense<Scalar> X_mat_;       // A_22_inv * A_21
+    Dense<Scalar> Schur_comp_;  // -A_12 * X_mat
+    Dense<Scalar> W_mat_;       // Interpolative factor (only for Skel)
     Face face_;                 // to which face this data corresponds (only for Skel)
 };
 
+}
 #endif  // ifndef DATA_HPP_

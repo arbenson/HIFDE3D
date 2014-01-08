@@ -2,17 +2,19 @@
 #define FACTOR_HPP_
 
 #include "data.hpp"
-#include "dmhm/core/dense.hpp"
-#include "dmhm/core/hmat_tools.hpp"
-#include "dmhm/core/vector.hpp"
+#include "hifde3d/core/dense.hpp"
+#include "hifde3d/core/hmat_tools.hpp"
+#include "hifde3d/core/vector.hpp"
 #include "numtns.hpp"
 #include "Schur.hpp"
-#include "dmhm/core/sparse.hpp"
+#include "hifde3d/core/sparse.hpp"
 #include "vec3t.hpp"
 
 #include <vector>
 
 #include <math.h>
+
+namespace hifde3d {
 
 template <typename Scalar>
 class HIFFactor {
@@ -43,7 +45,7 @@ public:
     //
     // u (in): vector to which to apply the (inverse of the) matrix
     // apply_inverse (in): whether or not to apply the inverse
-    void Apply(dmhm::Vector<Scalar>& u, bool apply_inverse=false);
+    void Apply(Vector<Scalar>& u, bool apply_inverse=false);
 
     void set_N(int N);
     int N();
@@ -59,7 +61,7 @@ public:
 
     // We assume that any (i, j, k) index with a i, j, or k = 0 is _zero_
     // This is the zero boundary conditions
-    dmhm::Sparse<Scalar>& sp_matrix();
+    Sparse<Scalar>& sp_matrix();
 
 
 private:
@@ -174,7 +176,7 @@ private:
     bool IsRemainingDOF(Index3 ind);
 
     // DATA
-    dmhm::Sparse<Scalar> sp_matrix_;
+    Sparse<Scalar> sp_matrix_;
     int N_;
     int P_;
     double epsilon_;
@@ -183,4 +185,5 @@ private:
     std::vector< std::vector< FactorData<Scalar> > > skel_level_data_;
 };
 
+}
 #endif  // ifndef FACTOR_HPP_

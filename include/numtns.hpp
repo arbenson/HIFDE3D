@@ -4,6 +4,8 @@
 #include "tools.hpp"
 #include "vec3t.hpp"
 
+namespace hifde3d {
+
 template <class F>
 class NumTns {
 public:
@@ -44,7 +46,7 @@ public:
         }
     }
 
-    ~NumTns() { 
+    ~NumTns() {
 #ifndef RELEASE
         CallStackEntry entry("NumTns::~NumTns");
 #endif
@@ -125,7 +127,7 @@ private:
     F* _data;
 
     inline bool ValidDimensions() const { return _m > 0 && _n > 0 && _p > 0; }
-    
+
     void allocate() {
 #ifndef RELEASE
         CallStackEntry entry("NumTns::allocate");
@@ -228,4 +230,5 @@ typedef NumTns<int>    IntNumTns;
 typedef NumTns<double> DblNumTns;
 typedef NumTns<cpx>    CpxNumTns;
 
+}
 #endif  // _NUMTNS_HPP_

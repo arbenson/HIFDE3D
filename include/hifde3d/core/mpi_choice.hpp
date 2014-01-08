@@ -2,60 +2,22 @@
    Copyright (c) 2011-2013 Jack Poulson, Lexing Ying,
    The University of Texas at Austin, and Stanford University
 
-   This file is part of Distributed-Memory Hierarchical Matrices (DMHM) and is
+   This file is part of Distributed-Memory Hierarchical Matrices (HIFDE3D) and is
    under the GPLv3 License, which can be found in the LICENSE file in the root
    directory, or at http://opensource.org/licenses/GPL-3.0
 */
 #pragma once
-#ifndef DMHM_CHOICE_HPP
-#define DMHM_CHOICE_HPP 1
+#ifndef HIFDE3D_MPI_CHOICE_HPP
+#define HIFDE3D_MPI_CHOICE_HPP 1
 
-#include <typeinfo>
+namespace hifde3d {
 
-namespace dmhm {
-
-template<typename TOut,typename TIn>
-inline TOut Cast( const TIn& input )
-{
-    std::stringstream stream;
-    TOut output;
-
-    stream << input;
-    stream >> output;
-
-    return output;
-}
-
-template<>
-inline bool Cast( const std::string& input )
-{
-    std::string trueString("true");
-    std::string falseString("false");
-    if( input.compare(trueString) == 0 )
-        return true;
-    else if( input.compare(falseString) == 0 )
-        return false;
-    else
-    {
-        bool output;
-        std::stringstream stream;
-        stream << input;
-        stream >> output;
-        return output;
-    }
-}
-
-class ArgException : public std::logic_error
+class MpiArgs
 {
 public:
-    ArgException( const char* msg="Argument exception" )
-    : std::logic_error( msg ) { }
-};
-
-class Args
-{
-public:
-    Args( int argc, char** argv, std::ostream& error=std::cerr );
+    MpiArgs
+    ( int argc, char** argv,
+      mpi::Comm comm=mpi::COMM_WORLD, std::ostream& error=std::cerr );
 
     template<typename T>
     T Input( std::string name, std::string desc );
@@ -70,6 +32,7 @@ private:
     char** argv_;
     std::vector<bool> usedArgs_;
     std::ostream& error_;
+    mpi::Comm comm_;
 
     struct RequiredArg
     {
@@ -98,20 +61,24 @@ private:
 };
 
 inline
-Args::Args( int argc, char** argv, std::ostream& error )
-: argc_(argc), argv_(argv), usedArgs_(argc,false), error_(error)
+MpiArgs::MpiArgs( int argc, char** argv, mpi::Comm comm, std::ostream& error )
+: argc_(argc), argv_(argv), usedArgs_(argc,false), error_(error), comm_(comm)
 { }
 
 template<typename T>
 inline T
-Args::Input( std::string name, std::string desc )
+MpiArgs::Input( std::string name, std::string desc )
 {
+    const int commRank = mpi::CommRank( comm_ );
+
     char** arg = std::find( argv_, argv_+argc_, name );
     const bool found = ( arg != argv_+argc_ );
     const bool invalidFound = ( arg == argv_+argc_-1 );
     if( invalidFound )
     {
-        error_ << "Missing value for last command-line argument" << std::endl;
+        if( commRank == 0 )
+            error_ << "Missing value for last command-line argument"
+                   << std::endl;
         throw ArgException();
     }
 
@@ -120,7 +87,7 @@ Args::Input( std::string name, std::string desc )
     requiredArgs_.push_back( RequiredArg(name,desc,typeInfo,usedVal,found) );
 
     // Before returning, store the used indices and check for duplication
-    if( found )
+    if( commRank == 0 && found )
     {
         const int offset = arg - argv_;
         if( usedArgs_[offset] || usedArgs_[offset+1] )
@@ -150,14 +117,18 @@ Args::Input( std::string name, std::string desc )
 
 template<typename T>
 inline T
-Args::Input( std::string name, std::string desc, T defaultVal )
+MpiArgs::Input( std::string name, std::string desc, T defaultVal )
 {
+    const int commRank = mpi::CommRank( comm_ );
+
     char** arg = std::find( argv_, argv_+argc_, name );
     const bool found = ( arg != argv_+argc_ );
     const bool invalidFound = ( arg == argv_+argc_-1 );
     if( invalidFound )
     {
-        error_ << "Missing value for last command-line argument" << std::endl;
+        if( commRank == 0 )
+            error_ << "Missing value for last command-line argument"
+                   << std::endl;
         throw ArgException();
     }
 
@@ -170,7 +141,7 @@ Args::Input( std::string name, std::string desc, T defaultVal )
     ( OptionalArg(name,desc,typeInfo,defValString,usedVal,found) );
 
     // Before returning, store the used indices and check for duplication
-    if( found )
+    if( commRank == 0 && found )
     {
         const int offset = arg - argv_;
         if( usedArgs_[offset] || usedArgs_[offset+1] )
@@ -202,7 +173,7 @@ Args::Input( std::string name, std::string desc, T defaultVal )
 }
 
 inline void
-Args::Process( std::ostream& output ) const
+MpiArgs::Process( std::ostream& output ) const
 {
     std::string help = "--help";
     char** arg = std::find( argv_, argv_+argc_, help );
@@ -221,8 +192,12 @@ Args::Process( std::ostream& output ) const
 }
 
 inline void
-Args::PrintReport( std::ostream& output ) const
+MpiArgs::PrintReport( std::ostream& output ) const
 {
+    const int commRank = mpi::CommRank( comm_ );
+    if( commRank != 0 )
+        return;
+
     const int numRequired = requiredArgs_.size();
     const int numOptional = optionalArgs_.size();
 
@@ -264,6 +239,6 @@ Args::PrintReport( std::ostream& output ) const
            << numOptFailed << " were not specified.\n" << std::endl;
 }
 
-} // namespace dmhm
+} // namespace hifde3d
 
-#endif // ifndef DMHM_CHOICE_HPP
+#endif // ifndef HIFDE3D_MPI_CHOICE_HPP
