@@ -1,3 +1,4 @@
+#include "dmhm/core/vector.hpp"
 #include "Factor.hpp"
 #include "InterpDecomp.hpp"
 
@@ -163,7 +164,7 @@ void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
         }
     }
     std::cout << "Level (" << level << ", Schur): "
-              << num_DOFs_eliminated << "DOFs eliminated" << std::endl;
+              << num_DOFs_eliminated << " DOFs eliminated" << std::endl;
 }
 
 template <typename Scalar>
@@ -231,16 +232,37 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
 	level_data = skel_level_data_[level];
     }
 
-    // TODO: implement this function
+    // TODO: pre-allocate these vectors
+    dmhm::Vector<int> iidx;
+    dmhm::Vector<int> jidx;
+    dmhm::Vector<Scalar> vals;
+    dmhm::Vector<int> del_inds;
 
-    // Loop over all factor data
-    //    Extract Schur complement information
-    // Update sparse matrix
+    // TODO: this process of forming iidx, jidx, and vals could be faster.
+    for (int n = 0; n < level_data.size(); ++n) {
+	FactorData& data = level_data[n];
+	IndexData& ind_data = data.ind_data();
+	std::vector<int>& skel_inds = ind_data.skeleton_set();
+	std::vector<int>& global_inds = ind_data.global_inds();
+	assert(data.Schur_comp().Height() == data.Schur_comp().Width());
+	assert(data.Schur_comp().Height() == skel_inds.size());
+	for (int i = 0; i < skel_inds.size(); ++i) {
+	    for (int j = 0; j < skel_inds.size(); ++j) {
+		iidx.PushBack(global_inds[skel_inds[i]]);
+		jidx.PushBack(global_inds[skel_inds[j]]);
+		vals.PushBack(data.Schur_comp().Get(i, j));
+	    }
+	}
+	// save on storage
+	data.Schur_comp().Clear();
+	for (int i = 0; i < ind_data.redundant_set().size(); ++i) {
+	    del_inds.PushBack(global_inds[ind_data.redundant_set()[i]]);
+	}
+    }
 
-    // Loop over all data
-    //   Get eliminated DOFs
-    // Set entries in sparse matrix corresponding to eliminated DOFs to zero
-    return;
+    sp_matrix_.Add(iidx, jidx, vals);
+    sp_matrix_.Delete(del_inds);
+    UpdateRemainingDOFs(level, is_skel);
 }
 
 template <typename Scalar>
