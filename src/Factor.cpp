@@ -9,16 +9,17 @@ namespace hifde3d {
 
 template <typename Scalar>
 void HIFFactor<Scalar>::Initialize() {
+    int NC = N + 1;
 #ifndef RELEASE
     CallStackEntry entry("HIFFactor::Initialize");
     if (N_ <= 0)
 	throw std::logic_error("Number of discretization points must be positive");
+    if (sp_matrix_.Height() != NC * NC * NC)
+	throw std::logic_error("Sparse matrix has incorrect height");
+    if (sp_matrix_.Width() != NC * NC * NC)
+	throw std::logic_error("Sparse matrix has incorrect height");
 #endif
-    int NC = N_ + 1;
     remaining_DOFs_.resize(NC, NC, NC);
-    // assert(sp_matrix_.Height() == NC * NC * NC);
-    // assert(sp_matrix_.Width() == NC * NC * NC);
-
     // Any zero index is zero (vanishing boundary conditions)
     for (int i = 0; i < NC; ++i) {
         for (int j = 0; j < NC; ++j) {
