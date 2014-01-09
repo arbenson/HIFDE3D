@@ -2,7 +2,7 @@ LIBS = -llapack -lblas -lm
 AR = ar
 ARFLAGS = rc
 CXX = g++
-CXXFLAGS = -g -O3 -Wall -Wextra -pedantic
+CXXFLAGS = -g -Wall -Wextra -pedantic
 LDFLAGS = ${LIBS}
 RANLIB = ranlib
 DEFINES = -DRESTRICT=__restrict__
@@ -15,8 +15,7 @@ INCLUDES = include
 HIF_SRC = src/global.cpp \
           src/InterpDecomp.cpp \
           src/Factor.cpp \
-          src/Apply.cpp \
-          src/main.cpp
+          src/Apply.cpp
 
 HMAT_SRC = src/hmat_tools/Add.cpp \
            src/hmat_tools/Compress.cpp \
