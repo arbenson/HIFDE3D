@@ -26,6 +26,21 @@ public:
     std::vector<int>& redundant_inds() { return redundant_inds_; }
     std::vector<int>& skeleton_inds() { return skeleton_inds_; }
 
+    void Print() {
+	std::cout << "Global indices: " << std::endl;
+	for (size_t i = 0; i < global_inds_.size(); ++i) {
+	    std::cout << global_inds_[i] << std::endl;
+	}
+	std::cout << "Redundant indices: " << std::endl;
+	for (size_t i = 0; i < redundant_inds_.size(); ++i) {
+	    std::cout << redundant_inds_[i] << std::endl;
+	}
+	std::cout << "Skeleton indices: " << std::endl;
+	for (size_t i = 0; i < skeleton_inds_.size(); ++i) {
+	    std::cout << skeleton_inds_[i] << std::endl;
+	}
+    }
+
 private:
     std::vector<int> global_inds_;         // indices into N^3 x N^3 system
     std::vector<int> redundant_inds_;      // indices of global_inds_ corresponding

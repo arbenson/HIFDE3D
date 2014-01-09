@@ -33,6 +33,8 @@ void HIFFactor<Scalar>::Initialize() {
             }
         }
     }
+
+    
 }
 
 template <typename Scalar>
@@ -42,16 +44,23 @@ void HIFFactor<Scalar>::Factor() {
 #endif
     int NC = N_ + 1;
     int num_levels = static_cast<int>(round(log2(NC / P_))) + 1;
+    schur_level_data_.resize(num_levels);
+    skel_level_data_.resize(num_levels);
 
     for (int level = 0; level < num_levels; ++level) {
         int width = pow2(level) * P_;
         int cells_per_dir = NC / width;
 
+	std::cout << "level 0" << std::endl;
         LevelFactorSchur(cells_per_dir, level);
+
+	std::cout << "Schur done" << std::endl;
+
         UpdateMatrixAndDOFs(level, false);
 
         if (level < num_levels - 1) {
             LevelFactorSkel(cells_per_dir, level);
+	    std::cout << "Skel done" << std::endl;
             UpdateMatrixAndDOFs(level, true);
         }
     }
@@ -176,16 +185,20 @@ void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
 #ifndef RELEASE
     CallStackEntry entry("HIFFactor::LevelFactorSchur");
 #endif
+    std::cout << "data size: " << schur_level_data_.size() << std::endl;
     std::vector< FactorData<Scalar> >& level_data = schur_level_data_[level];
     int num_DOFs_eliminated = 0;
     for (int i = 0; i < cells_per_dir; ++i) {
         for (int j = 0; i < cells_per_dir; ++j) {
             for (int k = 0; i < cells_per_dir; ++k) {
+		std::cout << "-------" << std::endl;
                 FactorData<Scalar> tmp;
                 level_data.push_back(tmp);
                 FactorData<Scalar>& factor_data = level_data[level_data.size() - 1];
                 InteriorCellIndexData(Index3(i, j, k), level, factor_data.ind_data());
 
+		factor_data.ind_data().Print();
+		
                 // Get local data from the global matrix
                 std::vector<int>& global_inds = factor_data.ind_data().global_inds();
                 Dense<Scalar> submat;
@@ -310,7 +323,7 @@ bool HIFFactor<Scalar>::IsInterior(int level, int a) {
     CallStackEntry entry("HIFFactor::IsInterior");
 #endif
     int width = pow2(level) * P_;
-    return (a > 0 || a  < N_ || (a % width) != 0);
+    return (a > 0 && a  < N_ && (a % width) != 0);
 }
 
 
@@ -346,18 +359,22 @@ void HIFFactor<Scalar>::InteriorCellIndexData(Index3 cell_location, int level,
     int width = pow2(level) * P_;
     Index3 min_inds = vec3max(width * cell_location, 1);
     Index3 max_inds = vec3min(width * (cell_location + 1), N_);
+    std::cout << "min: " << min_inds << std::endl;
+    std::cout << "max: " << max_inds << std::endl;
     assert(min_inds <= max_inds);
 
     std::vector<int>& red_inds = data.redundant_inds();
     std::vector<int>& skel_inds = data.skeleton_inds();
     for (int i = min_inds(0); i <= max_inds(0); ++i) {
-        for (int j = min_inds(1); i <= max_inds(1); ++j) {
-            for (int k = min_inds(2); i <= max_inds(2); ++k) {
-                Index3 curr_ind(i, j, k);
+        for (int j = min_inds(1); j <= max_inds(1); ++j) {
+            for (int k = min_inds(2); k <= max_inds(2); ++k) {
+		Index3 curr_ind(i, j, k);
                 if (IsRemainingDOF(curr_ind)) {
                     if (IsFaceInterior(level, curr_ind)) {
+			std::cout << "skel: " << curr_ind << std::endl;
                         skel_inds.push_back(Tensor2LinearInd(curr_ind));
                     } else if (IsCellInterior(level, curr_ind)) {
+			std::cout << "red: " << curr_ind << std::endl;
                         red_inds.push_back(Tensor2LinearInd(curr_ind));
                     }
                 }

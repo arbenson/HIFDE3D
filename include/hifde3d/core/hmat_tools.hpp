@@ -10,6 +10,8 @@
 #ifndef HIFDE3D_HMAT_TOOLS_HPP
 #define HIFDE3D_HMAT_TOOLS_HPP 1
 
+#include "hifde3d/config.h"
+
 #include <complex>
 #include <cmath>
 #include <cstdlib> // for integer abs
