@@ -20,7 +20,9 @@ template <typename Scalar>
 class HIFFactor {
 public:
     // TODO: better constructor and destructor
-    HIFFactor() {}
+    HIFFactor(int N, int P, double epsilon):
+	N_(N), P_(P), epsilon_(epsilon), sp_matrix_((N+1) * (N+1) * (N+1), (N+1) * (N+1) * (N+1)) {}
+							       
     ~HIFFactor() {}
 
     // Initialize the factorization.  This function should be called
@@ -176,10 +178,10 @@ private:
     bool IsRemainingDOF(Index3 ind);
 
     // DATA
-    Sparse<Scalar> sp_matrix_;
     int N_;
     int P_;
     double epsilon_;
+    Sparse<Scalar> sp_matrix_;
     IntNumTns remaining_DOFs_;
     std::vector< std::vector< FactorData<Scalar> > > schur_level_data_;
     std::vector< std::vector< FactorData<Scalar> > > skel_level_data_;
