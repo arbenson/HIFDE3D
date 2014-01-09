@@ -11,10 +11,10 @@ int main() {
     // manual call stack.
     try {
 #endif
-	hifde3d::HIFFactor<double> factor;
-	factor.set_epsilon(1e-3);
-	factor.set_N(31);
-	factor.set_P(4);
+	int N = 31;
+	int P = 4;
+	double epsilon = 1e-3;
+	hifde3d::HIFFactor<double> factor(N, P, epsilon);
 	
 	int NC = factor.N() + 1;
 	hifde3d::NumTns<double> A(NC, NC, NC);
