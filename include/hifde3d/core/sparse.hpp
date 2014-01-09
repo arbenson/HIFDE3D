@@ -137,8 +137,7 @@ Sparse<Scalar>::Add( int i, Vector<int>& jidx, Vector<Scalar>& vals )
 #endif
     if( sparsemat_.find(i) == sparsemat_.end() )
     {
-        sparsemat_[i] = new std::map<int, Scalar>;
-        std::map<int, Scalar> &irow = sparsemat_[i];
+	std::map<int, Scalar>& irow = sparsemat_[i];
         for( int iter=0; iter<jidx.Size(); ++iter )
 		{
             int j = jidx.Get(iter);
@@ -384,7 +383,7 @@ Sparse<Scalar>::Check( int i, int j ) const
 #endif
     if( sparsemat_.find(i) != sparsemat_.end() )
     {
-        std::map<int, Scalar> &irow = sparsemat_[i];
+        std::map<int, Scalar>& irow = sparsemat_[i];
         if( irow.find(j) != irow.end() )
             return true;
         else
@@ -397,18 +396,17 @@ Sparse<Scalar>::Check( int i, int j ) const
 template<typename Scalar>
 inline void
 Sparse<Scalar>::Find
-( Vector<int>& iidx, Vector<int>& jidx, Dense<Scalar>& res ) const
+( Vector<int>& iidx, Vector<int>& jidx, Dense<Scalar>& D ) const
 {
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Find");
 #endif
-    Dense<Scalar>& D = *res;
     for( int iteri=0; iteri<iidx.Size(); ++iteri )
     {
         int i = iidx.Get(iteri);
         if( sparsemat_.find(i) != sparsemat_.end() )
         {
-            std::map<int, Scalar> &irow = sparsemat_[i];
+	    std::map<int, Scalar> irow = sparsemat_.at(i);
             for( int iterj=0; iterj<jidx.Size(); ++iterj )
             {
                 int j = jidx.Get(iterj);
@@ -429,12 +427,11 @@ Sparse<Scalar>::Find
 template<typename Scalar>
 inline void
 Sparse<Scalar>::Find
-( int i, Vector<int>& jidx, Vector<Scalar>& res ) const
+( int i, Vector<int>& jidx, Vector<Scalar>& vec ) const
 {
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Find");
 #endif
-    Vector<Scalar>& vec = *res;
     if( sparsemat_.find(i) != sparsemat_.end() )
     {
         std::map<int, Scalar> &irow = sparsemat_[i];
@@ -457,12 +454,11 @@ Sparse<Scalar>::Find
 template<typename Scalar>
 inline void
 Sparse<Scalar>::Find
-( Vector<int>& iidx, int j, Vector<Scalar>& res ) const
+( Vector<int>& iidx, int j, Vector<Scalar>& vec ) const
 {
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Find");
 #endif
-    Vector<Scalar>& vec = *res;
     for( int iteri=0; iteri<iidx.Size(); ++iteri )
     {
         int i = iidx.Get(iteri);
@@ -481,12 +477,11 @@ Sparse<Scalar>::Find
 
 template<typename Scalar>
 inline void
-Sparse<Scalar>::FindRow( int i, Vector<Scalar>& res ) const
+Sparse<Scalar>::FindRow( int i, Vector<Scalar>& vec ) const
 {
 #ifndef RELEASE
     CallStackEntry entry("Sparse::FindRow");
 #endif
-    Vector<Scalar>& vec = *res;
     if( sparsemat_.find(i) != sparsemat_.end() )
     {
         std::map<int,Scalar> &irow = sparsemat_[i];
@@ -498,12 +493,11 @@ Sparse<Scalar>::FindRow( int i, Vector<Scalar>& res ) const
 
 template<typename Scalar>
 inline void
-Sparse<Scalar>::FindCol( int j, Vector<Scalar>& res ) const
+Sparse<Scalar>::FindCol( int j, Vector<Scalar>& vec ) const
 {
 #ifndef RELEASE
     CallStackEntry entry("Sparse::FindCol");
 #endif
-    Vector<Scalar>& vec = *res;
     typename std::map<int,std::map<int,Scalar> >::iterator it;
     for( it=sparsemat_.begin(); it!=sparsemat_.end(); ++it )
     {
