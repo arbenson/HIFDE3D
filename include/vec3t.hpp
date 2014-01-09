@@ -1,6 +1,8 @@
 #ifndef VEC3T_HPP_
 #define VEC3T_HPP_
 
+#include "assert.h"
+
 namespace hifde3d {
 using std::abs;
 

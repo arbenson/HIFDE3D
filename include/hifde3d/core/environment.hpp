@@ -29,6 +29,8 @@
 #include "hifde3d/core/choice.hpp"
 #include "hifde3d/core/mpi_choice.hpp"
 
+#include "assert.h"
+
 namespace hifde3d {
 
 bool Initialized();
@@ -58,7 +60,7 @@ PrintInputReport()
 #ifndef RELEASE
 void PushCallStack( const std::string s );
 void PopCallStack();
-void DumpCallStack();
+    void DumpCallStack(std::ostream& os=std::cerr);
 
 class CallStackEntry
 {
@@ -302,6 +304,23 @@ inline void AddToMap
     else
         it->second += value;
 }
+
+template <class T, class S>
+std::istream& operator>>(std::istream& is, std::pair<T,S>& a) {
+  is >> a.first;
+  is >> a.second;
+  return is;
+}
+template <class T, class S>
+std::ostream& operator<<(std::ostream& os, const std::pair<T,S>& a) {
+  os << a.first << " " << a.second;
+  return os;
+}
+
+typedef std::complex<double> cpx;
+
+inline int pow2(int l) { assert(l >= 0); return (1 << l); }
+
 
 } // namespace hifde3d
 

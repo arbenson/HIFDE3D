@@ -1,8 +1,10 @@
 #ifndef _NUMTNS_HPP_
 #define _NUMTNS_HPP_
 
-#include "tools.hpp"
+#include "hifde3d/core/environment.hpp"
 #include "vec3t.hpp"
+
+#include "assert.h"
 
 namespace hifde3d {
 
