@@ -12,11 +12,10 @@ void SetupStencil(HIFFactor<Scalar>& factor, int N, double h, NumTns<Scalar>& A,
 #ifndef RELEASE
     CallStackEntry entry("SetupStencil");
 #endif
-    // Sparse<Scalar>& matrix = factor.sp_matrix();
     int NC = N + 1;
     assert(A.m() == NC && A.n() == NC && A.p() == NC);
     assert(V.m() == NC && V.n() == NC && V.p() == NC);
-    // matrix.Resize(NC * NC * NC, NC * NC * NC);
+    Sparse<Scalar>& matrix = factor.sp_matrix();
     double hh = h * h;
 
     for (int i = 1; i < N; ++i) {
@@ -61,7 +60,7 @@ void SetupStencil(HIFFactor<Scalar>& factor, int N, double h, NumTns<Scalar>& A,
                 vals.PushBack(A(ind) / hh);
 
                 ind = Index3(i, j, k);
-                // matrix.Add(factor.Tensor2LinearInd(ind), jidx, vals);
+                matrix.Add(factor.Tensor2LinearInd(ind), jidx, vals);
             }
         }
     }
