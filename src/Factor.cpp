@@ -1,5 +1,6 @@
 #include "hifde3d/core/environment.hpp"
 #include "hifde3d/core/hmat_tools.hpp"
+#include "hifde3d/core/vector.hpp"
 #include "Factor.hpp"
 #include "InterpDecomp.hpp"
 
@@ -9,7 +10,7 @@ namespace hifde3d {
 
 template <typename Scalar>
 void HIFFactor<Scalar>::Initialize() {
-    int NC = N + 1;
+    int NC = N_ + 1;
 #ifndef RELEASE
     CallStackEntry entry("HIFFactor::Initialize");
     if (N_ <= 0)
@@ -269,10 +270,7 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
         level_data = skel_level_data_[level];
     }
 
-    // TODO: pre-allocate these vectors
-    Vector<int> iidx;
-    Vector<int> jidx;
-    Vector<Scalar> vals;
+    std::map<int, std::pair< Vector<int>, Vector<Scalar> > > vals;
     Vector<int> del_inds;
 
     // TODO: this process of forming iidx, jidx, and vals could be faster.
@@ -285,9 +283,8 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
         assert(data.Schur_comp().Height() == static_cast<int>(skel_inds.size()));
         for (size_t i = 0; i < skel_inds.size(); ++i) {
             for (size_t j = 0; j < skel_inds.size(); ++j) {
-                iidx.PushBack(global_inds[skel_inds[i]]);
-                jidx.PushBack(global_inds[skel_inds[j]]);
-                vals.PushBack(data.Schur_comp().Get(i, j));
+		vals[global_inds[skel_inds[i]]].first.PushBack(global_inds[skel_inds[j]]);
+		vals[global_inds[skel_inds[i]]].second.PushBack(data.Schur_comp().Get(i, j));
             }
         }
         // save on storage
@@ -298,9 +295,12 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
         }
     }
 
-//TODO: no match functions, vals should be dense<Scalar>, delete should have two inputs
-    //sp_matrix_.Add(iidx, jidx, vals);
-    //sp_matrix_.Delete(del_inds);
+    sp_matrix_.DeleteRow(del_inds);
+    sp_matrix_.DeleteCol(del_inds);
+    for (typename std::map<int, std::pair< Vector<int>, Vector<Scalar> > >::iterator it = vals.begin();
+	 it != vals.end(); ++it) {
+	sp_matrix_.Add(it->first, it->second.first, it->second.second);
+    }
     UpdateRemainingDOFs(level, is_skel);
 }
 
