@@ -37,7 +37,16 @@ void DenseSubmatrix(const Dense<Scalar>& matrix, const std::vector<int>& rows,
 template <typename Scalar>
 void DenseSubmatrix(const Sparse<Scalar>& matrix, const std::vector<int>& rows,
                     const std::vector<int>& cols, Dense<Scalar>& submatrix) {
-    // TODO: Implement this function
+    // TODO: avoid this copy
+    Vector<int> iidx(rows.size());
+    for (size_t i = 0; i < rows.size(); ++i) {
+	iidx.Set(i, rows[i]);
+    }
+    Vector<int> jidx(cols.size());
+    for (size_t j = 0; j < cols.size(); ++j) {
+	jidx.Set(j, rows[j]);
+    }
+    matrix.Find(iidx, jidx, submatrix);
 }
 
 // Schur out DOFs from a matrix.  The matrix contains the DOFs to be eliminated
