@@ -317,9 +317,9 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
     }
 
     std::cout << "deleting rows..." << std::endl;
-    //sp_matrix_.DeleteRow(del_inds);
+    sp_matrix_.DeleteRow(del_inds);
     std::cout << "deleting columns..." << std::endl;
-    //sp_matrix_.DeleteCol(del_inds);
+    sp_matrix_.DeleteCol(del_inds);
     std::cout << "updating matrix..." << std::endl;
     for (typename std::map<int, std::pair< Vector<int>, Vector<Scalar> > >::iterator it = vals.begin();
 	 it != vals.end(); ++it) {
