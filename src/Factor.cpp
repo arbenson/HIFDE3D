@@ -51,7 +51,7 @@ void HIFFactor<Scalar>::Factor() {
         int width = pow2(level) * P_;
         int cells_per_dir = NC / width;
 
-	std::cout << "level 0" << std::endl;
+	std::cout << "level " << level << std::endl;
         LevelFactorSchur(cells_per_dir, level);
 	std::cout << "Schur done" << std::endl;
         UpdateMatrixAndDOFs(level, false);
@@ -162,7 +162,6 @@ bool HIFFactor<Scalar>::Skeletonize(Index3 cell_location, Face face,
     CallStackEntry entry("HIFFactor::Skeletonize");
 #endif
     SkelIndexData skel_data;
-    // std::cout << "getting face data..." << std::endl;
     InteriorFaceIndexData(cell_location, face, level, skel_data);
     if (skel_data.global_cols().size() == 0) {
         return false;    // No face here.
@@ -299,16 +298,18 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
         IndexData& ind_data = data.ind_data();
         std::vector<int>& skel_inds = ind_data.skeleton_inds();
         std::vector<int>& global_inds = ind_data.global_inds();
-        assert(data.Schur_comp().Height() == data.Schur_comp().Width());
-        assert(data.Schur_comp().Height() == static_cast<int>(skel_inds.size()));
+	Dense<Scalar>& S = data.Schur_comp();
+        assert(S.Height() == S.Width());
+        assert(S.LDim() == S.Height());
+        assert(S.Height() == static_cast<int>(skel_inds.size()));
         for (size_t i = 0; i < skel_inds.size(); ++i) {
             for (size_t j = 0; j < skel_inds.size(); ++j) {
 		vals[global_inds[skel_inds[i]]].first.PushBack(global_inds[skel_inds[j]]);
-		vals[global_inds[skel_inds[i]]].second.PushBack(data.Schur_comp().Get(i, j));
+		vals[global_inds[skel_inds[i]]].second.PushBack(S.Get(i, j));
             }
         }
         // save on storage
-        data.Schur_comp().Clear();
+        S.Clear();
 	std::vector<int>& red_inds = ind_data.redundant_inds();
         for (size_t i = 0; i < red_inds.size(); ++i) {
             del_inds.PushBack(global_inds[red_inds[i]]);
@@ -316,9 +317,9 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
     }
 
     std::cout << "deleting rows..." << std::endl;
-    sp_matrix_.DeleteRow(del_inds);
+    //sp_matrix_.DeleteRow(del_inds);
     std::cout << "deleting columns..." << std::endl;
-    sp_matrix_.DeleteCol(del_inds);
+    //sp_matrix_.DeleteCol(del_inds);
     std::cout << "updating matrix..." << std::endl;
     for (typename std::map<int, std::pair< Vector<int>, Vector<Scalar> > >::iterator it = vals.begin();
 	 it != vals.end(); ++it) {

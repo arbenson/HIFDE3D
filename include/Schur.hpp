@@ -84,12 +84,6 @@ void Schur(Dense<Scalar>& matrix, FactorData<Scalar>& data) {
     Dense<Scalar> A21;
     DenseSubmatrix(matrix, red_inds, skel_inds, A21);
     DenseSubmatrix(matrix, red_inds, red_inds, data.A_22());
-    /*
-    matrix.Print("A", std::cout);
-    for (int i = 0; i < red_inds.size(); ++i) {
-	std::cout << red_inds[i] << std::endl;
-    }
-    */
     DenseSubmatrix(matrix, red_inds, red_inds, data.A_22_inv());
     // TODO: probably faster to copy A_22 into A_22_inv, rather than reading
     // from the matrix again
