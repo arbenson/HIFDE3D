@@ -13,14 +13,14 @@ void SetupStencil(HIFFactor<Scalar>& factor, int N, double h, NumTns<Scalar>& A,
     CallStackEntry entry("SetupStencil");
 #endif
     int NC = N + 1;
-    assert(A.m() == NC && A.n() == NC && A.p() == NC);
-    assert(V.m() == NC && V.n() == NC && V.p() == NC);
+    assert(A.m() == NC + 1 && A.n() == NC + 1 && A.p() == NC + 1);
+    assert(V.m() == NC + 1 && V.n() == NC + 1 && V.p() == NC + 1);
     Sparse<Scalar>& matrix = factor.sp_matrix();
     double hh = h * h;
 
-    for (int i = 1; i < N; ++i) {
-        for (int j = 1; j < N; ++j) {
-            for (int k = 1; k < N; ++k) {
+    for (int i = 1; i <= N; ++i) {
+        for (int j = 1; j <= N; ++j) {
+            for (int k = 1; k <= N; ++k) {
                 Vector<int> jidx;
                 Vector<Scalar> vals;
 
@@ -35,35 +35,49 @@ void SetupStencil(HIFFactor<Scalar>& factor, int N, double h, NumTns<Scalar>& A,
                 vals.PushBack(a);
 
                 // Coefficients from neighbors
-                ind = Index3(i - 1, j, k);
-                jidx.PushBack(factor.Tensor2LinearInd(ind));
-                vals.PushBack(A(ind) / hh);
+		if (i - 1 >= 1) {
+		    ind = Index3(i - 1, j, k);
+		    jidx.PushBack(factor.Tensor2LinearInd(ind));
+		    vals.PushBack(-A(ind) / hh);
+		}
 
-                ind = Index3(i + 1, j, k);
-                jidx.PushBack(factor.Tensor2LinearInd(ind));
-                vals.PushBack(A(ind) / hh);
+		if (i + 1 <= N) {
+		    ind = Index3(i + 1, j, k);
+		    jidx.PushBack(factor.Tensor2LinearInd(ind));
+		    vals.PushBack(-A(ind) / hh);
+		}
 
-                ind = Index3(i, j - 1, k);
-                jidx.PushBack(factor.Tensor2LinearInd(ind));
-                vals.PushBack(A(ind) / hh);
+		if (j - 1 >= 1) {
+		    ind = Index3(i, j - 1, k);
+		    jidx.PushBack(factor.Tensor2LinearInd(ind));
+		    vals.PushBack(-A(ind) / hh);
+		}
 
-                ind = Index3(i, j + 1, k);
-                jidx.PushBack(factor.Tensor2LinearInd(ind));
-                vals.PushBack(A(ind) / hh);
+		if (j + 1 <= N) {
+		    ind = Index3(i, j + 1, k);
+		    jidx.PushBack(factor.Tensor2LinearInd(ind));
+		    vals.PushBack(-A(ind) / hh);
+		}
 
-                ind = Index3(i, j, k - 1);
-                jidx.PushBack(factor.Tensor2LinearInd(ind));
-                vals.PushBack(A(ind) / hh);
+		if (k - 1 >= 1) {
+		    ind = Index3(i, j, k - 1);
+		    jidx.PushBack(factor.Tensor2LinearInd(ind));
+		    vals.PushBack(-A(ind) / hh);
+		}
 
-                ind = Index3(i, j, k + 1);
-                jidx.PushBack(factor.Tensor2LinearInd(ind));
-                vals.PushBack(A(ind) / hh);
+		if (k + 1 <= N) {
+		    ind = Index3(i, j, k + 1);
+		    jidx.PushBack(factor.Tensor2LinearInd(ind));
+		    vals.PushBack(-A(ind) / hh);
+		}
 
                 ind = Index3(i, j, k);
                 matrix.Add(factor.Tensor2LinearInd(ind), jidx, vals);
             }
         }
     }
+    
+    std::cout << "2081: " << matrix.Find(2081, 2081) << std::endl;
 }
 
 }

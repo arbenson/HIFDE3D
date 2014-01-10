@@ -20,9 +20,12 @@ namespace hifde3d {
 template <typename Scalar>
 void DenseSubmatrix(const Dense<Scalar>& matrix, const std::vector<int>& rows,
                     const std::vector<int>& cols, Dense<Scalar>& submatrix) {
+#ifndef RELEASE
+    CallStackEntry entry("DenseSubmatrix");
+#endif    
     submatrix.Resize(rows.size(), cols.size());
     for (size_t i = 0; i < rows.size(); ++i) {
-        for (size_t j = 0; i < cols.size(); ++i) {
+        for (size_t j = 0; j < cols.size(); ++j) {
             submatrix.Set(i, j, matrix.Get(rows[i], cols[j]));
         }
     }
@@ -35,8 +38,11 @@ void DenseSubmatrix(const Dense<Scalar>& matrix, const std::vector<int>& rows,
 // cols (in): column indices
 // submatrix (out): sp_matrix(rows, cols) as a dense matrix
 template <typename Scalar>
-void DenseSubmatrix(const Sparse<Scalar>& matrix, const std::vector<int>& rows,
-                    const std::vector<int>& cols, Dense<Scalar>& submatrix) {
+void DenseSubmatrix(Sparse<Scalar>& matrix, std::vector<int>& rows,
+                    std::vector<int>& cols, Dense<Scalar>& submatrix) {
+#ifndef RELEASE
+    CallStackEntry entry("DenseSubmatrix");
+#endif    
     // TODO: avoid this copy
     Vector<int> iidx(rows.size());
     for (size_t i = 0; i < rows.size(); ++i) {
@@ -44,9 +50,16 @@ void DenseSubmatrix(const Sparse<Scalar>& matrix, const std::vector<int>& rows,
     }
     Vector<int> jidx(cols.size());
     for (size_t j = 0; j < cols.size(); ++j) {
-	jidx.Set(j, rows[j]);
+	jidx.Set(j, cols[j]);
     }
+    submatrix.Resize(iidx.Size(), jidx.Size());
+    // iidx.Print("iidx", std::cout);
+    // jidx.Print("jidx", std::cout);
+    //std::cout << "sparse matrix nnz: " << matrix.NonZeros() << std::endl;
+    //std::cout << "2081: " << matrix.Find(2081, 2081) << std::endl;
     matrix.Find(iidx, jidx, submatrix);
+    //std::cout << "2081: " << submatrix.Get(1, 1) << std::endl;
+    //submatrix.Print("output matrix", std::cout);
 }
 
 // Schur out DOFs from a matrix.  The matrix contains the DOFs to be eliminated
@@ -60,6 +73,9 @@ void DenseSubmatrix(const Sparse<Scalar>& matrix, const std::vector<int>& rows,
 //             and Schur complement
 template <typename Scalar>
 void Schur(Dense<Scalar>& matrix, FactorData<Scalar>& data) {
+#ifndef RELEASE
+    CallStackEntry entry("Schur");
+#endif    
     std::vector<int>& red_inds = data.ind_data().redundant_inds();
     std::vector<int>& skel_inds = data.ind_data().skeleton_inds();
 
@@ -68,9 +84,16 @@ void Schur(Dense<Scalar>& matrix, FactorData<Scalar>& data) {
     Dense<Scalar> A21;
     DenseSubmatrix(matrix, red_inds, skel_inds, A21);
     DenseSubmatrix(matrix, red_inds, red_inds, data.A_22());
+    /*
+    matrix.Print("A", std::cout);
+    for (int i = 0; i < red_inds.size(); ++i) {
+	std::cout << red_inds[i] << std::endl;
+    }
+    */
     DenseSubmatrix(matrix, red_inds, red_inds, data.A_22_inv());
     // TODO: probably faster to copy A_22 into A_22_inv, rather than reading
     // from the matrix again
+    // data.A_22_inv().Print("A22_inv", std::cout);
     hmat_tools::Invert(data.A_22_inv());
 
     // X = A_22^{-1}A_{21}

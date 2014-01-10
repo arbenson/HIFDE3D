@@ -78,7 +78,7 @@ public:
     Dense<Scalar>& Schur_comp() { return Schur_comp_; }
     Dense<Scalar>& W_mat() { return W_mat_; }
 
-    int NumDOFsEliminated() { return ind_data_.skeleton_inds().size(); }
+    int NumDOFsEliminated() { return ind_data_.redundant_inds().size(); }
 
     IndexData& ind_data() { return ind_data_; }
     void set_face(Face face) { face_ = face; }
