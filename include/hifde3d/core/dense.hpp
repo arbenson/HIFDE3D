@@ -10,8 +10,6 @@
 #ifndef HIFDE3D_DENSE_HPP
 #define HIFDE3D_DENSE_HPP 1
 
-#include "hifde3d/core/environment.hpp"
-
 #include <iostream>
 #include <stdexcept>
 #include <string>

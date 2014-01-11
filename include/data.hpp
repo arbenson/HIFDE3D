@@ -1,7 +1,7 @@
 #ifndef DATA_HPP_
 #define DATA_HPP_
 
-#include "hifde3d/core/dense.hpp"
+#include "hifde3d.hpp"
 
 // Faces of a cube
 enum Face {TOP=0, BOTTOM, RIGHT, LEFT, FRONT, BACK};

@@ -25,11 +25,13 @@
 #include <utility>
 #include <vector>
 
+#include "assert.h"
+
+#include "hifde3d/config.h"
+
 #include "hifde3d/core/mpi.hpp"
 #include "hifde3d/core/choice.hpp"
 #include "hifde3d/core/mpi_choice.hpp"
-
-#include "assert.h"
 
 namespace hifde3d {
 

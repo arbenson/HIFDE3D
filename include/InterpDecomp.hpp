@@ -1,10 +1,6 @@
 #ifndef INTERP_DECOMP_HPP_
 #define INTERP_DECOMP_HPP_
 
-#include "hifde3d/core/dense.hpp"
-
-#include <vector>
-
 namespace hifde3d {
 // Interpolative decomposition (ID) of a matrix M:
 //

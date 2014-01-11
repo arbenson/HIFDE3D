@@ -1,17 +1,6 @@
 #ifndef FACTOR_HPP_
 #define FACTOR_HPP_
 
-#include "data.hpp"
-#include "hifde3d/core/dense.hpp"
-#include "hifde3d/core/hmat_tools.hpp"
-#include "hifde3d/core/vector.hpp"
-#include "numtns.hpp"
-#include "Schur.hpp"
-#include "hifde3d/core/sparse.hpp"
-#include "vec3t.hpp"
-
-#include <vector>
-
 #include <math.h>
 
 namespace hifde3d {
@@ -22,7 +11,7 @@ public:
     // TODO: better constructor and destructor
     HIFFactor(int N, int P, double epsilon):
 	N_(N), P_(P), epsilon_(epsilon), sp_matrix_((N+1) * (N+1) * (N+1), (N+1) * (N+1) * (N+1)) {}
-							       
+
     ~HIFFactor() {}
 
     // Initialize the factorization.  This function should be called

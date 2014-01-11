@@ -1,6 +1,4 @@
-#include "Factor.hpp"
-#include "data.hpp"
-#include "hifde3d/core/vector.hpp"
+#include "hifde3d.hpp"
 
 namespace hifde3d {
 // Obtain u_skel = u(skel), where skel is the set of skeleton DOFs.

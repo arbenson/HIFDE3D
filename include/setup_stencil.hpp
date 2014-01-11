@@ -1,9 +1,6 @@
 #ifndef SETUP_STENCIL_HPP_
 #define SETUP_STENCIL_HPP_
 
-#include "hifde3d/core/environment.hpp"
-#include "numtns.hpp"
-
 namespace hifde3d {
 
 template <typename Scalar>
@@ -76,7 +73,7 @@ void SetupStencil(HIFFactor<Scalar>& factor, int N, double h, NumTns<Scalar>& A,
             }
         }
     }
-    
+
     std::cout << "2081: " << matrix.Find(2081, 2081) << std::endl;
 }
 

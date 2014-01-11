@@ -1,9 +1,6 @@
 #ifndef _NUMTNS_HPP_
 #define _NUMTNS_HPP_
 
-#include "hifde3d/core/environment.hpp"
-#include "vec3t.hpp"
-
 #include "assert.h"
 
 namespace hifde3d {
@@ -92,12 +89,12 @@ public:
     const F& operator()(int i, int j, int k) const  {
 #ifndef RELEASE
         CallStackEntry entry("NumTns::operator()");
-	
+
 #endif
         if (!( i >= 0 && i < _m && j >= 0 && j < _n && k >= 0 && k < _p)) {
 	    std::cout << i << " " << j << " " << k << std::endl;
 	}
-	
+
         assert( i >= 0 && i < _m && j >= 0 && j < _n && k >= 0 && k < _p);
         return _data[i + j * _m + k * _m * _n];
     }

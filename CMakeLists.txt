@@ -196,7 +196,7 @@ set(MPI_LINK_FLAGS "${MPI_CXX_LINK_FLAGS}")
 if(BUILD_TESTS)
   set(TEST_DIR ${PROJECT_SOURCE_DIR}/tests)
   set(TEST_TYPES core hmat_tools HIFDE3D)
-  set(HIFDE3D_TESTS Apply_test Factor_test Sparse_test)
+  set(HIFDE3D_TESTS Apply_test Factor_test Sparse_test main)
 
   foreach(TYPE ${TEST_TYPES})
     set(OUTPUT_DIR "${PROJECT_BINARY_DIR}/bin/${TYPE}")

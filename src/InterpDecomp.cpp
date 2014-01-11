@@ -1,6 +1,4 @@
-#include "InterpDecomp.hpp"
-#include "hifde3d/core/dense.hpp"
-#include "hifde3d/core/lapack.hpp"
+#include "hifde3d.hpp"
 
 #include "assert.h"
 

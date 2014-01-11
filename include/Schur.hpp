@@ -1,13 +1,6 @@
 #ifndef SCHUR_HPP_
 #define SCHUR_HPP_
 
-#include "data.hpp"
-#include "hifde3d/core/dense.hpp"
-#include "hifde3d/core/hmat_tools.hpp"
-#include "hifde3d/core/sparse.hpp"
-
-#include <vector>
-
 namespace hifde3d {
 
 // Extract a dense submatrix from a dense matrix.
@@ -22,7 +15,7 @@ void DenseSubmatrix(const Dense<Scalar>& matrix, const std::vector<int>& rows,
                     const std::vector<int>& cols, Dense<Scalar>& submatrix) {
 #ifndef RELEASE
     CallStackEntry entry("DenseSubmatrix");
-#endif    
+#endif
     submatrix.Resize(rows.size(), cols.size());
     for (size_t i = 0; i < rows.size(); ++i) {
         for (size_t j = 0; j < cols.size(); ++j) {
@@ -42,7 +35,7 @@ void DenseSubmatrix(Sparse<Scalar>& matrix, std::vector<int>& rows,
                     std::vector<int>& cols, Dense<Scalar>& submatrix) {
 #ifndef RELEASE
     CallStackEntry entry("DenseSubmatrix");
-#endif    
+#endif
     // TODO: avoid this copy
     Vector<int> iidx(rows.size());
     for (size_t i = 0; i < rows.size(); ++i) {
@@ -75,7 +68,7 @@ template <typename Scalar>
 void Schur(Dense<Scalar>& matrix, FactorData<Scalar>& data) {
 #ifndef RELEASE
     CallStackEntry entry("Schur");
-#endif    
+#endif
     std::vector<int>& red_inds = data.ind_data().redundant_inds();
     std::vector<int>& skel_inds = data.ind_data().skeleton_inds();
 

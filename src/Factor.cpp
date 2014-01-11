@@ -1,9 +1,4 @@
-#include "hifde3d/core/environment.hpp"
-#include "hifde3d/core/hmat_tools.hpp"
-#include "hifde3d/core/vector.hpp"
-#include "Factor.hpp"
-#include "InterpDecomp.hpp"
-
+#include "hifde3d.hpp"
 #include <iostream>
 
 namespace hifde3d {
@@ -34,7 +29,7 @@ void HIFFactor<Scalar>::Initialize() {
         }
     }
 
-    
+
 }
 
 template <typename Scalar>
@@ -57,9 +52,9 @@ void HIFFactor<Scalar>::Factor() {
         UpdateMatrixAndDOFs(level, false);
 
         if (level < num_levels - 1) {
-	    std::cout << "Starting skel..." << std::endl;
+            std::cout << "Starting skel..." << std::endl;
             LevelFactorSkel(cells_per_dir, level);
-	    std::cout << "Skel done" << std::endl;
+            std::cout << "Skel done" << std::endl;
             UpdateMatrixAndDOFs(level, true);
         }
     }
@@ -168,7 +163,7 @@ bool HIFFactor<Scalar>::Skeletonize(Index3 cell_location, Face face,
     }
 
     Dense<Scalar> submat;
-    // std::cout << skel_data.global_rows().size() << " " << skel_data.global_cols().size() << std::endl; 
+    // std::cout << skel_data.global_rows().size() << " " << skel_data.global_cols().size() << std::endl;
     DenseSubmatrix(sp_matrix_, skel_data.global_rows(), skel_data.global_cols(), submat);
     data.set_face(face);
     std::vector<int>& cols = skel_data.global_cols();
@@ -200,7 +195,7 @@ void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
                 InteriorCellIndexData(Index3(i, j, k), level, factor_data.ind_data());
 
 		//factor_data.ind_data().Print();
-		
+
                 // Get local data from the global matrix
                 std::vector<int>& global_inds = factor_data.ind_data().global_inds();
                 Dense<Scalar> submat;
@@ -298,19 +293,20 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
         IndexData& ind_data = data.ind_data();
         std::vector<int>& skel_inds = ind_data.skeleton_inds();
         std::vector<int>& global_inds = ind_data.global_inds();
-	Dense<Scalar>& S = data.Schur_comp();
+        Dense<Scalar>& S = data.Schur_comp();
         assert(S.Height() == S.Width());
         assert(S.LDim() == S.Height());
         assert(S.Height() == static_cast<int>(skel_inds.size()));
         for (size_t i = 0; i < skel_inds.size(); ++i) {
             for (size_t j = 0; j < skel_inds.size(); ++j) {
-		vals[global_inds[skel_inds[i]]].first.PushBack(global_inds[skel_inds[j]]);
-		vals[global_inds[skel_inds[i]]].second.PushBack(S.Get(i, j));
+                vals[global_inds[skel_inds[i]]].first.PushBack
+                (global_inds[skel_inds[j]]);
+		        vals[global_inds[skel_inds[i]]].second.PushBack(S.Get(i, j));
             }
         }
         // save on storage
         S.Clear();
-	std::vector<int>& red_inds = ind_data.redundant_inds();
+        std::vector<int>& red_inds = ind_data.redundant_inds();
         for (size_t i = 0; i < red_inds.size(); ++i) {
             del_inds.PushBack(global_inds[red_inds[i]]);
         }
@@ -323,7 +319,7 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
     std::cout << "updating matrix..." << std::endl;
     for (typename std::map<int, std::pair< Vector<int>, Vector<Scalar> > >::iterator it = vals.begin();
 	 it != vals.end(); ++it) {
-	sp_matrix_.Add(it->first, it->second.first, it->second.second);
+        sp_matrix_.Add(it->first, it->second.first, it->second.second);
     }
     UpdateRemainingDOFs(level, is_skel);
 }
