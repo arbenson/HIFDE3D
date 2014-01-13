@@ -93,6 +93,8 @@ void PivotedQRWrapper(int m, int n, float *A, int lda, std::vector<int>& jpvt,
     int lwork = 2 * n + (n + 1) * BLOCKSIZE;
     std::vector<float> work(lwork);
     lapack::PivotedQR(m, n, A, lda, &jpvt[0], &tau[0], &work[0], lwork);
+    for( size_t i=0; i<jpvt.size(); ++i )
+        jpvt[i]--;
 }
 
 // double
@@ -104,6 +106,8 @@ void PivotedQRWrapper(int m, int n, double *A, int lda, std::vector<int>& jpvt,
     int lwork = 2 * n + (n + 1) * BLOCKSIZE;
     std::vector<double> work(lwork);
     lapack::PivotedQR(m, n, A, lda, &jpvt[0], &tau[0], &work[0], lwork);
+    for( size_t i=0; i<jpvt.size(); ++i )
+        jpvt[i]--;
 }
 
 // complex float
@@ -117,6 +121,8 @@ void PivotedQRWrapper(int m, int n, std::complex<float> *A, int lda,
     std::vector< std::complex<float> > work(lwork);
     std::vector<float> rwork(lapack::PivotedQRRealWorkSize(n));
     lapack::PivotedQR(m, n, A, lda, &jpvt[0], &tau[0], &work[0], lwork, &rwork[0]);
+    for( size_t i=0; i<jpvt.size(); ++i )
+        jpvt[i]--;
 }
 
 // complex double
@@ -130,6 +136,8 @@ void PivotedQRWrapper(int m, int n, std::complex<double> *A, int lda,
     std::vector< std::complex<double> > work(lwork);
     std::vector<double> rwork(lapack::PivotedQRRealWorkSize(n));
     lapack::PivotedQR(m, n, A, lda, &jpvt[0], &tau[0], &work[0], lwork, &rwork[0]);
+    for( size_t i=0; i<jpvt.size(); ++i )
+        jpvt[i]--;
 }
 
 template <typename Scalar>
@@ -252,7 +260,6 @@ template void PivotedQRWrapper(Dense< std::complex<float> >& A,
                                std::vector<int>& jpvt);
 template void PivotedQRWrapper(Dense< std::complex<double> >& A,
                                std::vector<int>& jpvt);
-
 template void TriangularSolveWrapper(Dense<float>& R, Dense<float>& B);
 template void TriangularSolveWrapper(Dense<double>& R, Dense<double>& B);
 template void TriangularSolveWrapper(Dense< std::complex<float> >& R,

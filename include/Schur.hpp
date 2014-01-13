@@ -93,6 +93,12 @@ void Schur(Dense<Scalar>& matrix, FactorData<Scalar>& data) {
     hmat_tools::Multiply(Scalar(1), data.A_22_inv(), A21, data.X_mat());
     data.Schur_comp().Resize(A12.Height(), data.X_mat().Width());
     hmat_tools::Multiply(Scalar(-1), A12, data.X_mat(), data.Schur_comp());
+    if( A12.Height() == 619 )
+    {
+        data.Schur_comp().Print("Schur_comp: ", std::cout);
+        //Sglobal = & data.Schur_comp() ;
+        //std::cout << *Sglobal << std::endl;
+    }
 }
 
 }

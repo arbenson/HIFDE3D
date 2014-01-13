@@ -42,6 +42,7 @@ void HIFFactor<Scalar>::Factor() {
     schur_level_data_.resize(num_levels);
     skel_level_data_.resize(num_levels);
 
+    std::cout << "Total Levels: " << num_levels << std::endl;
     for (int level = 0; level < num_levels; ++level) {
         int width = pow2(level) * P_;
         int cells_per_dir = NC / width;
@@ -163,8 +164,10 @@ bool HIFFactor<Scalar>::Skeletonize(Index3 cell_location, Face face,
     }
 
     Dense<Scalar> submat;
-    // std::cout << skel_data.global_rows().size() << " " << skel_data.global_cols().size() << std::endl;
-    DenseSubmatrix(sp_matrix_, skel_data.global_rows(), skel_data.global_cols(), submat);
+    // std::cout << skel_data.global_rows().size() << " "
+    // << skel_data.global_cols().size() << std::endl;
+    DenseSubmatrix
+    (sp_matrix_, skel_data.global_rows(), skel_data.global_cols(), submat);
     data.set_face(face);
     std::vector<int>& cols = skel_data.global_cols();
     // TODO: avoid this copy
@@ -189,15 +192,17 @@ void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
     for (int i = 0; i < cells_per_dir; ++i) {
         for (int j = 0; j < cells_per_dir; ++j) {
             for (int k = 0; k < cells_per_dir; ++k) {
-                FactorData<Scalar> tmp;
-                level_data.push_back(tmp);
-                FactorData<Scalar>& factor_data = level_data[level_data.size() - 1];
-                InteriorCellIndexData(Index3(i, j, k), level, factor_data.ind_data());
+                level_data.push_back(*new FactorData<Scalar>);
+                FactorData<Scalar>& factor_data =
+                    level_data[level_data.size() - 1];
+                InteriorCellIndexData
+                (Index3(i, j, k), level, factor_data.ind_data());
 
-		//factor_data.ind_data().Print();
+                //factor_data.ind_data().Print();
 
                 // Get local data from the global matrix
-                std::vector<int>& global_inds = factor_data.ind_data().global_inds();
+                std::vector<int>& global_inds =
+                    factor_data.ind_data().global_inds();
                 Dense<Scalar> submat;
                 DenseSubmatrix(sp_matrix_, global_inds, global_inds, submat);
                 Schur(submat, factor_data);
@@ -228,7 +233,8 @@ void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
                 {
                     Face face = TOP;
                     level_data.push_back(FactorData<Scalar>());
-                    FactorData<Scalar>& top_data = level_data[level_data.size() - 1];
+                    FactorData<Scalar>& top_data =
+                        level_data[level_data.size() - 1];
                     top_data.set_face(face);
                     bool ret = Skeletonize(cell_location, face, level, top_data);
                     if (!ret) {
@@ -241,9 +247,11 @@ void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
                 {
                     Face face = FRONT;
                     level_data.push_back(FactorData<Scalar>());
-                    FactorData<Scalar>& front_data = level_data[level_data.size() - 1];
+                    FactorData<Scalar>& front_data =
+                        level_data[level_data.size() - 1];
                     front_data.set_face(face);
-                    bool ret = Skeletonize(cell_location, face, level, front_data);
+                    bool ret = Skeletonize
+                               (cell_location, face, level, front_data);
                     if (!ret) {
                         level_data.pop_back();
                     } else {
@@ -297,17 +305,42 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
         assert(S.Height() == S.Width());
         assert(S.LDim() == S.Height());
         assert(S.Height() == static_cast<int>(skel_inds.size()));
+
+        //std::cout << n << " " << vals.size() << std::endl;
+        if( n==0 && vals.size()==0 )
+        {
+        /*
+            std::cout << "SKEL size: " << skel_inds.size() << std::endl;
+            for(size_t i=0; i < skel_inds.size(); ++i)
+                std::cout << skel_inds[i] << " ";
+            std::cout << std::endl;
+
+            std::cout << "Global size: " << global_inds.size() << std::endl;
+            for(size_t i=0; i < global_inds.size(); ++i)
+                std::cout << global_inds[i] << " ";
+            std::cout << std::endl;
+            */
+#ifndef RELEASE
+            std::cout << S.Height() << std::endl;
+            std::cout << "hello" << std::endl;
+#endif
+        }
+
         for (size_t i = 0; i < skel_inds.size(); ++i) {
             for (size_t j = 0; j < skel_inds.size(); ++j) {
+                assert(skel_inds[i]<global_inds.size());
+                assert(skel_inds[j]<global_inds.size());
+
                 vals[global_inds[skel_inds[i]]].first.PushBack
                 (global_inds[skel_inds[j]]);
 		        vals[global_inds[skel_inds[i]]].second.PushBack(S.Get(i, j));
             }
         }
         // save on storage
-        S.Clear();
+        //S.Clear();
         std::vector<int>& red_inds = ind_data.redundant_inds();
         for (size_t i = 0; i < red_inds.size(); ++i) {
+                assert(red_inds[i]<global_inds.size());
             del_inds.PushBack(global_inds[red_inds[i]]);
         }
     }
