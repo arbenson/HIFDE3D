@@ -3,8 +3,13 @@
 
 namespace hifde3d {
 
+
+
 template <typename Scalar>
 void HIFFactor<Scalar>::Initialize() {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::Initialize");
+#endif
     int NC = N_ + 1;
 #ifndef RELEASE
     CallStackEntry entry("HIFFactor::Initialize");
@@ -29,6 +34,10 @@ void HIFFactor<Scalar>::Initialize() {
             }
         }
     }
+
+    int num_levels = static_cast<int>(round(log2(NC / P_))) + 1;
+    schur_level_data_.resize(num_levels);
+    skel_level_data_.resize(num_levels);
 }
 
 template <typename Scalar>
@@ -39,9 +48,6 @@ void HIFFactor<Scalar>::Factor() {
     int NC = N_ + 1;
     int num_levels = static_cast<int>(round(log2(NC / P_))) + 1;
     std::cout << "Total Levels: " << num_levels << std::endl;
-
-    schur_level_data_.resize(num_levels);
-    skel_level_data_.resize(num_levels);
 
     for (int level = 0; level < num_levels; ++level) {
         //TODO: if the number on each side is not power of 2, bug in width.
@@ -187,13 +193,14 @@ void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
     CallStackEntry entry("HIFFactor::LevelFactorSchur");
 #endif
     std::vector< FactorData<Scalar> >& level_data = schur_level_data_[level];
+    level_data.resize(cells_per_dir * cells_per_dir * cells_per_dir);
     int num_DOFs_eliminated = 0;
+    int curr_ind = 0;
     for (int i = 0; i < cells_per_dir; ++i) {
         for (int j = 0; j < cells_per_dir; ++j) {
             for (int k = 0; k < cells_per_dir; ++k) {
-              level_data.push_back(*new FactorData<Scalar>());
-                FactorData<Scalar>& factor_data =
-                    level_data[level_data.size() - 1];
+                FactorData<Scalar>& factor_data = level_data[curr_ind];
+                ++curr_ind;
                 InteriorCellIndexData
                 (Index3(i, j, k), level, factor_data.ind_data());
 
@@ -213,18 +220,19 @@ void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
 
 template <typename Scalar>
 int HIFFactor<Scalar>::SkeletonizeFace(Face face, std::vector<
-                                       FactorData<Scalar> >& level_data,
-				       int level,
-                                       Index3 cell_location) {
-  level_data.push_back(*new FactorData<Scalar>());
-  FactorData<Scalar>& data = level_data[level_data.size() - 1];
-  data.set_face(face);
-  bool ret = Skeletonize(cell_location, face, level, data);
-  if (!ret) {
-    level_data.pop_back();
-    return 0;
-  }
-  return data.NumDOFsEliminated();
+                                        FactorData<Scalar> >& level_data,
+                                        int level,
+                                        Index3 cell_location,
+                                        int& curr_pos) {
+    FactorData<Scalar>& data = level_data[curr_pos];
+    data.set_face(face);
+    bool ret = Skeletonize(cell_location, face, level, data);
+    if (!ret) {
+        level_data.pop_back();
+        return 0;
+    }
+    curr_pos++;
+    return data.NumDOFsEliminated();
 }
 
 
@@ -234,27 +242,29 @@ void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
     CallStackEntry entry("HIFFactor::LevelFactorSkel");
 #endif
     std::vector< FactorData<Scalar> >& level_data = skel_level_data_[level];
+    size_t num_faces_total = 3 * (cells_per_dir - 1) * cells_per_dir * cells_per_dir;
+    level_data.resize(num_faces_total);
     int num_DOFs_eliminated = 0;
+    int curr_pos = 0;
     for (int i = 0; i < cells_per_dir; ++i) {
         for (int j = 0; j < cells_per_dir; ++j) {
             for (int k = 0; k < cells_per_dir; ++k) {
                 Index3 cell_location(i, j, k);
-
                 // We only do half of the faces since each face is shared by
                 // two cells.  To keep indexing consistent, we do the top,
                 // front, and left faces.
-                num_DOFs_eliminated += SkeletonizeFace(TOP, level_data,
-                                                       level, cell_location);
-                num_DOFs_eliminated += SkeletonizeFace(FRONT, level_data,
-                                                       level, cell_location);
-                num_DOFs_eliminated += SkeletonizeFace(LEFT, level_data,
-                                                       level, cell_location);
+                num_DOFs_eliminated += SkeletonizeFace(TOP, level_data, level,
+                                                       cell_location, curr_pos);
+                num_DOFs_eliminated += SkeletonizeFace(FRONT, level_data, level,
+                                                       cell_location, curr_pos);
+                num_DOFs_eliminated += SkeletonizeFace(LEFT, level_data, level,
+                                                       cell_location, curr_pos);
             }
         }
     }
 
-    size_t num_faces_total = 3 * (cells_per_dir - 1) * cells_per_dir * cells_per_dir;
-    assert(level_data.size() == num_faces_total);
+    // size_t num_faces_total = 3 * (cells_per_dir - 1) * cells_per_dir * cells_per_dir;
+    // assert(level_data.size() == num_faces_total);
     std::cout << "Level (" << level << ", Skel): "
               << num_DOFs_eliminated << " DOFs eliminated" << std::endl;
 }
@@ -649,6 +659,40 @@ double HIFFactor<Scalar>::epsilon() { return epsilon_; }
 template <typename Scalar>
 Sparse<Scalar>& HIFFactor<Scalar>::sp_matrix() { return sp_matrix_; }
 
+    
+template <typename Scalar>
+double RelativeErrorNorm2(Vector<Scalar>& x, Vector<Scalar>& y) {
+    assert(x.Size() == y.Size());
+    double err = 0;
+    double norm = 0;
+    for (int i = 0; i < x.Size(); ++i) {
+	Scalar xi = x.Get(i);
+	Scalar yi = y.Get(i);
+	double diff = std::abs(xi - yi);
+	err += diff * diff;
+	norm += std::abs(xi) * std::abs(xi);
+    }
+    return sqrt(err / norm);
+}
+    
+template <typename Scalar>
+void SpMV(Sparse<Scalar>& A, Vector<Scalar>& x, Vector<Scalar>& y) {
+    assert(x.Size() == y.Size());
+    assert(A.Width() == x.Size());
+    for (int i = 0; i < A.Height(); ++i) {
+	Vector<Scalar> row;
+	Vector<int> inds;
+	A.FindRow(i, row, inds);
+	Scalar val = Scalar(0);
+	assert(row.Size() == inds.Size());
+	for (int j = 0; j < row.Size(); ++j) {
+	    val += row.Get(j) * x.Get(inds.Get(j));
+	}
+	y.Set(i, val);
+    }
+}
+
+
 
 // Declarations
 template class HIFFactor<float>;
@@ -656,4 +700,13 @@ template class HIFFactor<double>;
 template class HIFFactor< std::complex<float> >;
 template class HIFFactor< std::complex<double> >;
 
+template double RelativeErrorNorm2(Vector<float>& x, Vector<float>& y);
+template double RelativeErrorNorm2(Vector<double>& x, Vector<double>& y);
+template double RelativeErrorNorm2(Vector< std::complex<float> >& x, Vector< std::complex<float> >& y);
+template double RelativeErrorNorm2(Vector< std::complex<double> >& x, Vector< std::complex<double> >& y);
+
+template void SpMV(Sparse<float>& A, Vector<float>& x, Vector<float>& y);
+template void SpMV(Sparse<double>& A, Vector<double>& x, Vector<double>& y);
+template void SpMV(Sparse< std::complex<float> >& A, Vector< std::complex<float> >& x, Vector< std::complex<float> >& y);
+template void SpMV(Sparse< std::complex<double> >& A, Vector< std::complex<double> >& x, Vector< std::complex<double> >& y);
 }
