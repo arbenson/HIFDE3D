@@ -82,11 +82,12 @@ private:
     // 
     // face (in): which face
     // level_data (in): skeletonization data from this level
-    // cell_location (in): 3-tuple location of cell
     // level (in): which level
+    // cell_location (in): 3-tuple location of cell
+    // curr_pos (in/out): current position in level_data array
     // return value: number of DOFs eliminated via skeletonization
     int SkeletonizeFace(Face face, std::vector< FactorData<Scalar> >& level_data,
-                        int level, Index3 cell_location);
+                        int level, Index3 cell_location, int &curr_pos);
 
     // Perform skeletonization on the DOFs corresponding to the
     // interior of a single face.
@@ -183,5 +184,12 @@ private:
     std::vector< std::vector< FactorData<Scalar> > > skel_level_data_;
 };
 
+template <typename Scalar>
+double RelativeErrorNorm2(Vector<Scalar>& x, Vector<Scalar>& y);
+
+template <typename Scalar>
+void SpMV(Sparse<Scalar>& A, Vector<Scalar>& x, Vector<Scalar>& y);
+
 }
+
 #endif  // ifndef FACTOR_HPP_
