@@ -9,11 +9,12 @@ void HIFFactor<Scalar>::Initialize() {
 #ifndef RELEASE
     CallStackEntry entry("HIFFactor::Initialize");
     if (N_ <= 0)
-	throw std::logic_error("Number of discretization points must be positive");
+        throw std::logic_error
+              ("Number of discretization points must be positive");
     if (sp_matrix_.Height() != NC * NC * NC)
-	throw std::logic_error("Sparse matrix has incorrect height");
+        throw std::logic_error("Sparse matrix has incorrect height");
     if (sp_matrix_.Width() != NC * NC * NC)
-	throw std::logic_error("Sparse matrix has incorrect height");
+        throw std::logic_error("Sparse matrix has incorrect height");
 #endif
     remaining_DOFs_.resize(NC, NC, NC);
     // Any zero index is zero (vanishing boundary conditions)
@@ -28,8 +29,6 @@ void HIFFactor<Scalar>::Initialize() {
             }
         }
     }
-
-
 }
 
 template <typename Scalar>
@@ -39,24 +38,27 @@ void HIFFactor<Scalar>::Factor() {
 #endif
     int NC = N_ + 1;
     int num_levels = static_cast<int>(round(log2(NC / P_))) + 1;
+    std::cout << "Total Levels: " << num_levels << std::endl;
+
     schur_level_data_.resize(num_levels);
     skel_level_data_.resize(num_levels);
 
-    std::cout << "Total Levels: " << num_levels << std::endl;
     for (int level = 0; level < num_levels; ++level) {
+        //TODO: if the number on each side is not power of 2, bug in width.
         int width = pow2(level) * P_;
         int cells_per_dir = NC / width;
 
-	std::cout << "level " << level << std::endl;
+        std::cout << "level " << level << std::endl;
+        std::cout << "Starting Schur..." << std::endl;
         LevelFactorSchur(cells_per_dir, level);
-	std::cout << "Schur done" << std::endl;
-        UpdateMatrixAndDOFs(level, false);
+        std::cout << "Schur done" << std::endl;
+        UpdateMatrixAndDOFs(level, SCHUR );
 
         if (level < num_levels - 1) {
             std::cout << "Starting skel..." << std::endl;
             LevelFactorSkel(cells_per_dir, level);
             std::cout << "Skel done" << std::endl;
-            UpdateMatrixAndDOFs(level, true);
+            UpdateMatrixAndDOFs(level, SKEL );
         }
     }
 }
@@ -84,14 +86,14 @@ int HIFFactor<Scalar>::Tensor2LinearInd(Index3 ind) {
     int k = ind(2);
     int NC = N_ + 1;
     if (!(0 <= i && i <= N_ && 0 <= j && j <= N_ && 0 <= k && k <= N_)) {
-	std::cout << i << " " << j << " " << k << std::endl;
+    std::cout << i << " " << j << " " << k << std::endl;
     }
     assert(0 <= i && i <= N_ && 0 <= j && j <= N_ && 0 <= k && k <= N_);
     return i + NC * j + (NC * NC) * k;
 }
 
 template <typename Scalar>
-void HIFFactor<Scalar>::UpdateRemainingDOFs(int level, bool is_skel) {
+void HIFFactor<Scalar>::UpdateRemainingDOFs(int level, FactorType ftype) {
 #ifndef RELEASE
     CallStackEntry entry("HIFFactor::UpdateRemainingDOFs");
 #endif
@@ -99,7 +101,7 @@ void HIFFactor<Scalar>::UpdateRemainingDOFs(int level, bool is_skel) {
 
     // Gather the DOFs
     std::vector< FactorData<Scalar> >& level_data = schur_level_data_[level];
-    if (is_skel) {
+    if (ftype == SKEL) {
         level_data = skel_level_data_[level];
     }
 
@@ -240,8 +242,8 @@ void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
                     if (!ret) {
                         level_data.pop_back();
                     } else {
-			num_DOFs_eliminated += top_data.NumDOFsEliminated();
-		    }
+            num_DOFs_eliminated += top_data.NumDOFsEliminated();
+            }
                 }
 
                 {
@@ -255,8 +257,8 @@ void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
                     if (!ret) {
                         level_data.pop_back();
                     } else {
-			num_DOFs_eliminated += front_data.NumDOFsEliminated();
-		    }
+            num_DOFs_eliminated += front_data.NumDOFsEliminated();
+            }
                 }
 
                 {
@@ -268,8 +270,8 @@ void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
                     if (!ret) {
                         level_data.pop_back();
                     } else {
-			num_DOFs_eliminated += left_data.NumDOFsEliminated();
-		    }
+            num_DOFs_eliminated += left_data.NumDOFsEliminated();
+            }
                 }
             }
         }
@@ -283,12 +285,12 @@ void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
 }
 
 template <typename Scalar>
-void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
+void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, FactorType ftype) {
 #ifndef RELEASE
     CallStackEntry entry("HIFFactor::UpdateMatrixAndDOFs");
 #endif
     std::vector< FactorData<Scalar> >& level_data = schur_level_data_[level];
-    if (is_skel) {
+    if (ftype == SKEL) {
         level_data = skel_level_data_[level];
     }
 
@@ -333,7 +335,7 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
 
                 vals[global_inds[skel_inds[i]]].first.PushBack
                 (global_inds[skel_inds[j]]);
-		        vals[global_inds[skel_inds[i]]].second.PushBack(S.Get(i, j));
+                vals[global_inds[skel_inds[i]]].second.PushBack(S.Get(i, j));
             }
         }
         // save on storage
@@ -351,10 +353,10 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, bool is_skel) {
     sp_matrix_.DeleteCol(del_inds);
     std::cout << "updating matrix..." << std::endl;
     for (typename std::map<int, std::pair< Vector<int>, Vector<Scalar> > >::iterator it = vals.begin();
-	 it != vals.end(); ++it) {
+     it != vals.end(); ++it) {
         sp_matrix_.Add(it->first, it->second.first, it->second.second);
     }
-    UpdateRemainingDOFs(level, is_skel);
+    UpdateRemainingDOFs(level, ftype);
 }
 
 template <typename Scalar>
@@ -410,18 +412,18 @@ void HIFFactor<Scalar>::InteriorCellIndexData(Index3 cell_location, int level,
     for (int i = min_inds(0); i <= max_inds(0); ++i) {
         for (int j = min_inds(1); j <= max_inds(1); ++j) {
             for (int k = min_inds(2); k <= max_inds(2); ++k) {
-		Index3 curr_ind(i, j, k);
+        Index3 curr_ind(i, j, k);
                 if (IsRemainingDOF(curr_ind)) {
                     if (IsFaceInterior(level, curr_ind)) {
-			//std::cout << "skel: " << curr_ind << std::endl;
-			global_inds.push_back(Tensor2LinearInd(curr_ind));
-			skel_inds.push_back(curr_lin_index);
-			++curr_lin_index;
+            //std::cout << "skel: " << curr_ind << std::endl;
+            global_inds.push_back(Tensor2LinearInd(curr_ind));
+            skel_inds.push_back(curr_lin_index);
+            ++curr_lin_index;
                     } else if (IsCellInterior(level, curr_ind)) {
-			//std::cout << "red: " << curr_ind << std::endl;
-			global_inds.push_back(Tensor2LinearInd(curr_ind));
-			red_inds.push_back(curr_lin_index);
-			++curr_lin_index;
+            //std::cout << "red: " << curr_ind << std::endl;
+            global_inds.push_back(Tensor2LinearInd(curr_ind));
+            red_inds.push_back(curr_lin_index);
+            ++curr_lin_index;
                     }
                 }
             }
@@ -598,7 +600,7 @@ void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
         InteriorFaceDOFs(cell_location, RIGHT, level, global_rows);
         InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
         InteriorFaceDOFs(cell_location, BACK, level, global_rows);
-	break;
+    break;
 
     case LEFT:
         if (min_inds(1) == 1) {
@@ -624,7 +626,7 @@ void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
         // RIGHT has already been counted
         InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
         InteriorFaceDOFs(cell_location, BACK, level, global_rows);
-	break;
+    break;
 
     case FRONT:
         if (min_inds(2) == 1) {
@@ -650,7 +652,7 @@ void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
         InteriorFaceDOFs(cell_location, RIGHT, level, global_rows);
         InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
         // BACK has already been counted
-	break;
+    break;
 
     case BOTTOM:
     case RIGHT:

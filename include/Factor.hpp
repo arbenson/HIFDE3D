@@ -10,7 +10,7 @@ class HIFFactor {
 public:
     // TODO: better constructor and destructor
     HIFFactor(int N, int P, double epsilon):
-	N_(N), P_(P), epsilon_(epsilon), sp_matrix_((N+1) * (N+1) * (N+1), (N+1) * (N+1) * (N+1)) {}
+    N_(N), P_(P), epsilon_(epsilon), sp_matrix_((N+1) * (N+1) * (N+1), (N+1) * (N+1) * (N+1)) {}
 
     ~HIFFactor() {}
 
@@ -54,14 +54,13 @@ public:
     // This is the zero boundary conditions
     Sparse<Scalar>& sp_matrix();
 
+    enum FactorType { SCHUR, SKEL };
 
 private:
     // Remove eliminated degrees of freedom.
     //
     // level (in): level at which to remove DOFs
-    // is_skel (in): wheter or not the update is after skeletonization (after
-    //               half level)
-    void UpdateRemainingDOFs(int level, bool is_skel);
+    void UpdateRemainingDOFs(int level, FactorType ftype);
 
     // Eliminate DOFs interior to cells at a given level.
     //
@@ -108,9 +107,7 @@ private:
     //
     // level (in): the level for which computation has completed and for which
     //             data will be used for the update
-    // is_skel (in): wheter or not the update is after skeletonization (after
-    //               half level)
-    void UpdateMatrixAndDOFs(int level, bool is_skel);
+    void UpdateMatrixAndDOFs(int level, FactorType ftype);
 
     // For a given cell location at a given level, determine the indices of the
     // DOFs interior to the cell.  These DOFs are eliminated by a Schur

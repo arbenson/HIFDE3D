@@ -32,51 +32,49 @@ void SetupStencil(HIFFactor<Scalar>& factor, int N, double h, NumTns<Scalar>& A,
                 vals.PushBack(a);
 
                 // Coefficients from neighbors
-		if (i - 1 >= 1) {
-		    ind = Index3(i - 1, j, k);
-		    jidx.PushBack(factor.Tensor2LinearInd(ind));
-		    vals.PushBack(-A(ind) / hh);
-		}
+                if (i - 1 >= 1) {
+                    ind = Index3(i - 1, j, k);
+                    jidx.PushBack(factor.Tensor2LinearInd(ind));
+                    vals.PushBack(-A(ind) / hh);
+                }
 
-		if (i + 1 <= N) {
-		    ind = Index3(i + 1, j, k);
-		    jidx.PushBack(factor.Tensor2LinearInd(ind));
-		    vals.PushBack(-A(ind) / hh);
-		}
+                if (i + 1 <= N) {
+                    ind = Index3(i + 1, j, k);
+                    jidx.PushBack(factor.Tensor2LinearInd(ind));
+                    vals.PushBack(-A(ind) / hh);
+                }
 
-		if (j - 1 >= 1) {
-		    ind = Index3(i, j - 1, k);
-		    jidx.PushBack(factor.Tensor2LinearInd(ind));
-		    vals.PushBack(-A(ind) / hh);
-		}
+                if (j - 1 >= 1) {
+                    ind = Index3(i, j - 1, k);
+                    jidx.PushBack(factor.Tensor2LinearInd(ind));
+                    vals.PushBack(-A(ind) / hh);
+                }
 
-		if (j + 1 <= N) {
-		    ind = Index3(i, j + 1, k);
-		    jidx.PushBack(factor.Tensor2LinearInd(ind));
-		    vals.PushBack(-A(ind) / hh);
-		}
+                if (j + 1 <= N) {
+                    ind = Index3(i, j + 1, k);
+                    jidx.PushBack(factor.Tensor2LinearInd(ind));
+                    vals.PushBack(-A(ind) / hh);
+                }
 
-		if (k - 1 >= 1) {
-		    ind = Index3(i, j, k - 1);
-		    jidx.PushBack(factor.Tensor2LinearInd(ind));
-		    vals.PushBack(-A(ind) / hh);
-		}
+                if (k - 1 >= 1) {
+                    ind = Index3(i, j, k - 1);
+                    jidx.PushBack(factor.Tensor2LinearInd(ind));
+                    vals.PushBack(-A(ind) / hh);
+                }
 
-		if (k + 1 <= N) {
-		    ind = Index3(i, j, k + 1);
-		    jidx.PushBack(factor.Tensor2LinearInd(ind));
-		    vals.PushBack(-A(ind) / hh);
-		}
+                if (k + 1 <= N) {
+                    ind = Index3(i, j, k + 1);
+                    jidx.PushBack(factor.Tensor2LinearInd(ind));
+                    vals.PushBack(-A(ind) / hh);
+                }
 
                 ind = Index3(i, j, k);
                 matrix.Add(factor.Tensor2LinearInd(ind), jidx, vals);
             }
         }
     }
-
-    std::cout << "2081: " << matrix.Find(2081, 2081) << std::endl;
 }
 
-}
+} // namespace hifde3d
 
 #endif  // ifndef SETUP_STENCIL_HPP_
