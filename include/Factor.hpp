@@ -78,6 +78,16 @@ private:
     // level (in): level at which to eliminate DOFs
     void LevelFactorSkel(int cells_per_dir, int level);
 
+    // Skeletonize a single face.
+    // 
+    // face (in): which face
+    // level_data (in): skeletonization data from this level
+    // cell_location (in): 3-tuple location of cell
+    // level (in): which level
+    // return value: number of DOFs eliminated via skeletonization
+    int SkeletonizeFace(Face face, std::vector< FactorData<Scalar> >& level_data,
+                        int level, Index3 cell_location);
+
     // Perform skeletonization on the DOFs corresponding to the
     // interior of a single face.
     //

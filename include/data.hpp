@@ -45,7 +45,7 @@ private:
     std::vector<int> global_inds_;         // indices into N^3 x N^3 system
     std::vector<int> redundant_inds_;      // indices of global_inds_ corresponding
                                            // to what is being eliminated
-    std::vector<int> skeleton_inds_;        // indices of global_inds_ corresponding
+    std::vector<int> skeleton_inds_;       // indices of global_inds_ corresponding
                                            // to non-zero entries of the matrix below
                                            // global_inds_(redundant_inds_).
 };
@@ -91,8 +91,8 @@ private:
     Dense<Scalar> X_mat_;       // A_22_inv * A_21
     Dense<Scalar> Schur_comp_;  // -A_12 * X_mat
     Dense<Scalar> W_mat_;       // Interpolative factor (only for Skel)
-    Face face_;                       // to which face this data corresponds
-                                      // (only for Skel)
+    Face face_;                 // To which face this data corresponds
+                                // (only for Skel)
 };
 
 }
