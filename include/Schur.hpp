@@ -46,13 +46,7 @@ void DenseSubmatrix(Sparse<Scalar>& matrix, std::vector<int>& rows,
 	jidx.Set(j, cols[j]);
     }
     submatrix.Resize(iidx.Size(), jidx.Size());
-    // iidx.Print("iidx", std::cout);
-    // jidx.Print("jidx", std::cout);
-    //std::cout << "sparse matrix nnz: " << matrix.NonZeros() << std::endl;
-    //std::cout << "2081: " << matrix.Find(2081, 2081) << std::endl;
     matrix.Find(iidx, jidx, submatrix);
-    //std::cout << "2081: " << submatrix.Get(1, 1) << std::endl;
-    //submatrix.Print("output matrix", std::cout);
 }
 
 // Schur out DOFs from a matrix.  The matrix contains the DOFs to be eliminated
@@ -80,7 +74,6 @@ void Schur(Dense<Scalar>& matrix, FactorData<Scalar>& data) {
     DenseSubmatrix(matrix, red_inds, red_inds, data.A_22_inv());
     // TODO: probably faster to copy A_22 into A_22_inv, rather than reading
     // from the matrix again
-    // data.A_22_inv().Print("A22_inv", std::cout);
     hmat_tools::Invert(data.A_22_inv());
 
     // X = A_22^{-1}A_{21}
@@ -93,12 +86,6 @@ void Schur(Dense<Scalar>& matrix, FactorData<Scalar>& data) {
     hmat_tools::Multiply(Scalar(1), data.A_22_inv(), A21, data.X_mat());
     data.Schur_comp().Resize(A12.Height(), data.X_mat().Width());
     hmat_tools::Multiply(Scalar(-1), A12, data.X_mat(), data.Schur_comp());
-    if( A12.Height() == 619 )
-    {
-        data.Schur_comp().Print("Schur_comp: ", std::cout);
-        //Sglobal = & data.Schur_comp() ;
-        //std::cout << *Sglobal << std::endl;
-    }
 }
 
 }
