@@ -17,7 +17,6 @@ int main() {
     int NC = factor.N() + 1;
     NumTns<double> A(NC + 1, NC + 1, NC + 1);
     NumTns<double> V(NC + 1, NC + 1, NC + 1);
-    Vector<double> u(NC * NC * NC);
     for (int i = 0; i < NC + 1; ++i) {
         for (int j = 0; j < NC + 1; ++j) {
             for (int k = 0; k < NC + 1; ++k) {
@@ -33,15 +32,6 @@ int main() {
         }
     }
 
-    for (int i = 0; i < NC; ++i) {
-        for (int j = 0; j < NC; ++j) {
-            for (int k = 0; k < NC; ++k) {
-                Index3 ind(i, j, k);
-                u.Set(factor.Tensor2LinearInd(ind), 1);
-            }
-        }
-    }
-
     double h = 1.0 / NC;
     std::cout << "setup..." << std::endl;
     SetupStencil(factor, NC - 1, h, A, V);
@@ -51,6 +41,25 @@ int main() {
     std::cout << "factoring..." << std::endl;
     factor.Factor();
     std::cout << "factoring done" << std::endl;
+
+#if 0
+    Vector<double> v_vec(NC * NC * NC);
+    for (int i = 0; i < v.Size(); ++i) {
+	v_vec.Set(i, Scalar(1) / (NC * NC * NC));
+    }
+    Vector<double> RHS(NC * NC * NC);
+    SpMV(factor.sp_matrix(), v_vec, RHS);
+
+    Vector<double> u_vec(NC * NC * NC);
+    factor.Apply(u_vec, false);
+    double err_apply = RelativeErrorNorm2(RHS, u_vec);
+    std::cout << "Error in application of A: " << err_apply << std::endl;
+
+    Vector<double> u_vec(NC * NC * NC);
+    factor.Apply(u_vec, true);
+    double err_inv = RelativeErrorNorm2(v_vec, u_vec);
+    std::cout << "Error in application of inverse of A: " << err_inv << std::endl;
+#endif
 
 #ifndef RELEASE
     } //end of try
