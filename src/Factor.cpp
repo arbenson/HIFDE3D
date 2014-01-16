@@ -201,9 +201,9 @@ void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
                 ++curr_ind;
                 InteriorCellIndexData
                 (Index3(i, j, k), level, factor_data.ind_data());
-		if (level == 0) {
-		    assert(factor_data.NumDOFsEliminated() == 27);
-		}
+                if (level == 0) {
+                    assert(factor_data.NumDOFsEliminated() == 27);
+                }
 
                 // Get local data from the global matrix
                 std::vector<int>& global_inds =
@@ -263,9 +263,6 @@ void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
             }
         }
     }
-
-    // size_t num_faces_total = 3 * (cells_per_dir - 1) * cells_per_dir * cells_per_dir;
-    // assert(level_data.size() == num_faces_total);
     std::cout << "Level (" << level << ", Skel): "
               << num_DOFs_eliminated << " DOFs eliminated" << std::endl;
 }
@@ -293,7 +290,6 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, FactorType ftype) {
         std::vector<int>& global_inds = ind_data.global_inds();
         Dense<Scalar>& S = data.Schur_comp();
         assert(S.Height() == S.Width());
-        assert(S.LDim() == S.Height());
         assert(S.Height() == static_cast<int>(skel_inds.size()));
 
         for (size_t i = 0; i < skel_inds.size(); ++i) {
@@ -356,8 +352,8 @@ bool HIFFactor<Scalar>::IsCellInterior(int level, Index3 ind) {
     CallStackEntry entry("HIFFactor::IsCellInterior");
 #endif
     return IsInterior(level, ind(0)) &&
-        IsInterior(level, ind(1)) &&
-        IsInterior(level, ind(2));
+           IsInterior(level, ind(1)) &&
+           IsInterior(level, ind(2));
 }
 
 template <typename Scalar>
@@ -378,21 +374,22 @@ void HIFFactor<Scalar>::InteriorCellIndexData(Index3 cell_location, int level,
     for (int i = min_inds(0); i <= max_inds(0); ++i) {
         for (int j = min_inds(1); j <= max_inds(1); ++j) {
             for (int k = min_inds(2); k <= max_inds(2); ++k) {
-		Index3 curr_ind(i, j, k);
-		if (IsRemainingDOF(curr_ind)) {
-		    if (IsFaceInterior(level, curr_ind)) {
-			global_inds.push_back(Tensor2LinearInd(curr_ind));
-			skel_inds.push_back(curr_lin_index);
-			++curr_lin_index;
-                    } else if (IsCellInterior(level, curr_ind)) {
-			global_inds.push_back(Tensor2LinearInd(curr_ind));
-			red_inds.push_back(curr_lin_index);
-			++curr_lin_index;
+                Index3 curr_ind(i, j, k);
+                if (IsRemainingDOF(curr_ind)) {
+                    if (IsCellInterior(level, curr_ind)) {
+                        global_inds.push_back(Tensor2LinearInd(curr_ind));
+                        red_inds.push_back(curr_lin_index);
+                        ++curr_lin_index;
+                    }  else if (IsFaceInterior(level, curr_ind)) {
+                        global_inds.push_back(Tensor2LinearInd(curr_ind));
+                        skel_inds.push_back(curr_lin_index);
+                        ++curr_lin_index;
                     }
                 }
             }
         }
     }
+    //std::cout << skel_inds.size() << std::endl;
 }
 
 template <typename Scalar>
@@ -534,7 +531,6 @@ void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
     //       Here, we just compute what we need for the given cell.
     int width = pow2(level) * P_;
     Index3 min_inds = vec3max(width * cell_location, 1);
-    Index3 max_inds = vec3min(width * (cell_location + 1), N_);
     std::vector<int>& global_rows = data.global_rows();
     std::vector<int>& global_cols = data.global_cols();
 
@@ -548,8 +544,8 @@ void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
         InteriorFaceDOFs(cell_location, TOP, level, global_cols);
 
         // Rows are all possible neighbors of interior DOFs
-        // First, all interior faces for current box
-        InteriorFaceDOFs(cell_location, TOP, level, global_rows);
+        // First, all interior faces for current box, except TOP
+        // DO NOT INCLUDE SELF-INTERACTION
         InteriorFaceDOFs(cell_location, BOTTOM, level, global_rows);
         InteriorFaceDOFs(cell_location, LEFT, level, global_rows);
         InteriorFaceDOFs(cell_location, RIGHT, level, global_rows);
@@ -577,7 +573,7 @@ void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
         // First, all interior faces for current box
         InteriorFaceDOFs(cell_location, TOP, level, global_rows);
         InteriorFaceDOFs(cell_location, BOTTOM, level, global_rows);
-        InteriorFaceDOFs(cell_location, LEFT, level, global_rows);
+        // DO NOT INCLUDE SELF-INTERACTION
         InteriorFaceDOFs(cell_location, RIGHT, level, global_rows);
         InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
         InteriorFaceDOFs(cell_location, BACK, level, global_rows);
@@ -605,7 +601,7 @@ void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
         InteriorFaceDOFs(cell_location, BOTTOM, level, global_rows);
         InteriorFaceDOFs(cell_location, LEFT, level, global_rows);
         InteriorFaceDOFs(cell_location, RIGHT, level, global_rows);
-        InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
+        // DO NOT INCLUDE SELF-INTERACTION
         InteriorFaceDOFs(cell_location, BACK, level, global_rows);
 
         // Now, get all in neighbor cell.
@@ -665,11 +661,11 @@ double RelativeErrorNorm2(Vector<Scalar>& x, Vector<Scalar>& y) {
     double err = 0;
     double norm = 0;
     for (int i = 0; i < x.Size(); ++i) {
-	Scalar xi = x.Get(i);
-	Scalar yi = y.Get(i);
-	double diff = std::abs(xi - yi);
-	err += diff * diff;
-	norm += std::abs(xi) * std::abs(xi);
+        Scalar xi = x.Get(i);
+        Scalar yi = y.Get(i);
+        double diff = std::abs(xi - yi);
+        err += diff * diff;
+        norm += std::abs(xi) * std::abs(xi);
     }
     return sqrt(err / norm);
 }
@@ -679,15 +675,15 @@ void SpMV(Sparse<Scalar>& A, Vector<Scalar>& x, Vector<Scalar>& y) {
     assert(x.Size() == y.Size());
     assert(A.Width() == x.Size());
     for (int i = 0; i < A.Height(); ++i) {
-	Vector<Scalar> row;
-	Vector<int> inds;
-	A.FindRow(i, row, inds);
-	Scalar val = Scalar(0);
-	assert(row.Size() == inds.Size());
-	for (int j = 0; j < row.Size(); ++j) {
-	    val += row.Get(j) * x.Get(inds.Get(j));
-	}
-	y.Set(i, val);
+        Vector<Scalar> row;
+        Vector<int> inds;
+        A.FindRow(i, row, inds);
+        Scalar val = Scalar(0);
+        assert(row.Size() == inds.Size());
+        for (int j = 0; j < row.Size(); ++j) {
+            val += row.Get(j) * x.Get(inds.Get(j));
+        }
+        y.Set(i, val);
     }
 }
 
