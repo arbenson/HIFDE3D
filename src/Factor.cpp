@@ -3,8 +3,6 @@
 
 namespace hifde3d {
 
-
-
 template <typename Scalar>
 void HIFFactor<Scalar>::Initialize() {
 #ifndef RELEASE
@@ -203,6 +201,9 @@ void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
                 ++curr_ind;
                 InteriorCellIndexData
                 (Index3(i, j, k), level, factor_data.ind_data());
+		if (level == 0) {
+		    assert(factor_data.NumDOFsEliminated() == 27);
+		}
 
                 // Get local data from the global matrix
                 std::vector<int>& global_inds =
@@ -332,7 +333,7 @@ bool HIFFactor<Scalar>::IsInterior(int level, int a) {
     CallStackEntry entry("HIFFactor::IsInterior");
 #endif
     int width = pow2(level) * P_;
-    return (a > 0 && a  < N_ && (a % width) != 0);
+    return (a > 0 && a <= N_ && (a % width) != 0);
 }
 
 
@@ -368,8 +369,6 @@ void HIFFactor<Scalar>::InteriorCellIndexData(Index3 cell_location, int level,
     int width = pow2(level) * P_;
     Index3 min_inds = vec3max(width * cell_location, 1);
     Index3 max_inds = vec3min(width * (cell_location + 1), N_);
-    //std::cout << "min: " << min_inds << std::endl;
-    //std::cout << "max: " << max_inds << std::endl;
     assert(min_inds <= max_inds);
 
     std::vector<int>& global_inds = data.global_inds();
@@ -379,16 +378,16 @@ void HIFFactor<Scalar>::InteriorCellIndexData(Index3 cell_location, int level,
     for (int i = min_inds(0); i <= max_inds(0); ++i) {
         for (int j = min_inds(1); j <= max_inds(1); ++j) {
             for (int k = min_inds(2); k <= max_inds(2); ++k) {
-              Index3 curr_ind(i, j, k);
-              if (IsRemainingDOF(curr_ind)) {
-                if (IsFaceInterior(level, curr_ind)) {
-                      global_inds.push_back(Tensor2LinearInd(curr_ind));
-                      skel_inds.push_back(curr_lin_index);
-                      ++curr_lin_index;
+		Index3 curr_ind(i, j, k);
+		if (IsRemainingDOF(curr_ind)) {
+		    if (IsFaceInterior(level, curr_ind)) {
+			global_inds.push_back(Tensor2LinearInd(curr_ind));
+			skel_inds.push_back(curr_lin_index);
+			++curr_lin_index;
                     } else if (IsCellInterior(level, curr_ind)) {
-                      global_inds.push_back(Tensor2LinearInd(curr_ind));
-                      red_inds.push_back(curr_lin_index);
-                      ++curr_lin_index;
+			global_inds.push_back(Tensor2LinearInd(curr_ind));
+			red_inds.push_back(curr_lin_index);
+			++curr_lin_index;
                     }
                 }
             }
