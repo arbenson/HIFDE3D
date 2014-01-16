@@ -42,10 +42,9 @@ int main() {
     factor.Factor();
     std::cout << "factoring done" << std::endl;
 
-#if 0
     Vector<double> v_vec(NC * NC * NC);
-    for (int i = 0; i < v.Size(); ++i) {
-	v_vec.Set(i, Scalar(1) / (NC * NC * NC));
+    for (int i = 0; i < v_vec.Size(); ++i) {
+	v_vec.Set(i, 1.0 / (NC * NC * NC));
     }
     Vector<double> RHS(NC * NC * NC);
     SpMV(factor.sp_matrix(), v_vec, RHS);
@@ -55,11 +54,9 @@ int main() {
     double err_apply = RelativeErrorNorm2(RHS, u_vec);
     std::cout << "Error in application of A: " << err_apply << std::endl;
 
-    Vector<double> u_vec(NC * NC * NC);
     factor.Apply(u_vec, true);
     double err_inv = RelativeErrorNorm2(v_vec, u_vec);
     std::cout << "Error in application of inverse of A: " << err_inv << std::endl;
-#endif
 
 #ifndef RELEASE
     } //end of try
