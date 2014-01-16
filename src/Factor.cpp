@@ -3,8 +3,6 @@
 
 namespace hifde3d {
 
-
-
 template <typename Scalar>
 void HIFFactor<Scalar>::Initialize() {
 #ifndef RELEASE
@@ -203,6 +201,9 @@ void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
                 ++curr_ind;
                 InteriorCellIndexData
                 (Index3(i, j, k), level, factor_data.ind_data());
+                if (level == 0) {
+                    assert(factor_data.NumDOFsEliminated() == 27);
+                }
 
                 // Get local data from the global matrix
                 std::vector<int>& global_inds =
@@ -261,9 +262,6 @@ void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
             }
         }
     }
-
-    // size_t num_faces_total = 3 * (cells_per_dir - 1) * cells_per_dir * cells_per_dir;
-    // assert(level_data.size() == num_faces_total);
     std::cout << "Level (" << level << ", Skel): "
               << num_DOFs_eliminated << " DOFs eliminated" << std::endl;
 }
@@ -291,7 +289,6 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, FactorType ftype) {
         std::vector<int>& global_inds = ind_data.global_inds();
         Dense<Scalar>& S = data.Schur_comp();
         assert(S.Height() == S.Width());
-        assert(S.LDim() == S.Height());
         assert(S.Height() == static_cast<int>(skel_inds.size()));
 
         for (size_t i = 0; i < skel_inds.size(); ++i) {
@@ -331,7 +328,7 @@ bool HIFFactor<Scalar>::IsInterior(int level, int a) {
     CallStackEntry entry("HIFFactor::IsInterior");
 #endif
     int width = pow2(level) * P_;
-    return (a > 0 && a  < N_ && (a % width) != 0);
+    return (a > 0 && a <= N_ && (a % width) != 0);
 }
 
 
@@ -354,8 +351,8 @@ bool HIFFactor<Scalar>::IsCellInterior(int level, Index3 ind) {
     CallStackEntry entry("HIFFactor::IsCellInterior");
 #endif
     return IsInterior(level, ind(0)) &&
-        IsInterior(level, ind(1)) &&
-        IsInterior(level, ind(2));
+           IsInterior(level, ind(1)) &&
+           IsInterior(level, ind(2));
 }
 
 template <typename Scalar>
@@ -367,8 +364,6 @@ void HIFFactor<Scalar>::InteriorCellIndexData(Index3 cell_location, int level,
     int width = pow2(level) * P_;
     Index3 min_inds = vec3max(width * cell_location, 1);
     Index3 max_inds = vec3min(width * (cell_location + 1), N_);
-    //std::cout << "min: " << min_inds << std::endl;
-    //std::cout << "max: " << max_inds << std::endl;
     assert(min_inds <= max_inds);
 
     std::vector<int>& global_inds = data.global_inds();
@@ -378,16 +373,16 @@ void HIFFactor<Scalar>::InteriorCellIndexData(Index3 cell_location, int level,
     for (int i = min_inds(0); i <= max_inds(0); ++i) {
         for (int j = min_inds(1); j <= max_inds(1); ++j) {
             for (int k = min_inds(2); k <= max_inds(2); ++k) {
-              Index3 curr_ind(i, j, k);
-              if (IsRemainingDOF(curr_ind)) {
-                if (IsFaceInterior(level, curr_ind)) {
-                      global_inds.push_back(Tensor2LinearInd(curr_ind));
-                      skel_inds.push_back(curr_lin_index);
-                      ++curr_lin_index;
-                    } else if (IsCellInterior(level, curr_ind)) {
-                      global_inds.push_back(Tensor2LinearInd(curr_ind));
-                      red_inds.push_back(curr_lin_index);
-                      ++curr_lin_index;
+                Index3 curr_ind(i, j, k);
+                if (IsRemainingDOF(curr_ind)) {
+                    if (IsCellInterior(level, curr_ind)) {
+                        global_inds.push_back(Tensor2LinearInd(curr_ind));
+                        red_inds.push_back(curr_lin_index);
+                        ++curr_lin_index;
+                    }  else if (IsFaceInterior(level, curr_ind)) {
+                        global_inds.push_back(Tensor2LinearInd(curr_ind));
+                        skel_inds.push_back(curr_lin_index);
+                        ++curr_lin_index;
                     }
                 }
             }
@@ -534,7 +529,6 @@ void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
     //       Here, we just compute what we need for the given cell.
     int width = pow2(level) * P_;
     Index3 min_inds = vec3max(width * cell_location, 1);
-    Index3 max_inds = vec3min(width * (cell_location + 1), N_);
     std::vector<int>& global_rows = data.global_rows();
     std::vector<int>& global_cols = data.global_cols();
 
@@ -548,8 +542,8 @@ void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
         InteriorFaceDOFs(cell_location, TOP, level, global_cols);
 
         // Rows are all possible neighbors of interior DOFs
-        // First, all interior faces for current box
-        InteriorFaceDOFs(cell_location, TOP, level, global_rows);
+        // First, all interior faces for current box, except TOP
+        // DO NOT INCLUDE SELF-INTERACTION
         InteriorFaceDOFs(cell_location, BOTTOM, level, global_rows);
         InteriorFaceDOFs(cell_location, LEFT, level, global_rows);
         InteriorFaceDOFs(cell_location, RIGHT, level, global_rows);
@@ -577,7 +571,7 @@ void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
         // First, all interior faces for current box
         InteriorFaceDOFs(cell_location, TOP, level, global_rows);
         InteriorFaceDOFs(cell_location, BOTTOM, level, global_rows);
-        InteriorFaceDOFs(cell_location, LEFT, level, global_rows);
+        // DO NOT INCLUDE SELF-INTERACTION
         InteriorFaceDOFs(cell_location, RIGHT, level, global_rows);
         InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
         InteriorFaceDOFs(cell_location, BACK, level, global_rows);
@@ -605,7 +599,7 @@ void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
         InteriorFaceDOFs(cell_location, BOTTOM, level, global_rows);
         InteriorFaceDOFs(cell_location, LEFT, level, global_rows);
         InteriorFaceDOFs(cell_location, RIGHT, level, global_rows);
-        InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
+        // DO NOT INCLUDE SELF-INTERACTION
         InteriorFaceDOFs(cell_location, BACK, level, global_rows);
 
         // Now, get all in neighbor cell.
@@ -659,17 +653,290 @@ template <typename Scalar>
 Sparse<Scalar>& HIFFactor<Scalar>::sp_matrix() { return sp_matrix_; }
 
 
+// CODE TO DO APPLICATION
+
+// Obtain u_skel = u(skel), where skel is the set of skeleton DOFs.
+// Here, 'skeleton DOFs' refers to DOFs _not_ being eliminated.
+// The skeleton points could be the interior of faces _or_ the skeleton
+// points from skeletonization.
+//
+// u (in): vector of size N^3
+// data (in): factor data that contains the skeleton indices
+// skel_vec (out): u at the skeleton points
+template <typename Scalar>
+void GetSkeletonVector(Vector<Scalar>& u, FactorData<Scalar>& data,
+                       Vector<Scalar>& skel_vec) {
+#ifndef RELEASE
+    CallStackEntry entry("GetSkeletonVector");
+#endif
+    std::vector<int>& global_inds = data.ind_data().global_inds();
+    std::vector<int>& skel_inds = data.ind_data().skeleton_inds();
+    skel_vec.Resize(skel_inds.size());
+    for (size_t i = 0; i < skel_inds.size(); ++i) {
+        skel_vec.Set(i, u[global_inds[skel_inds[i]]]);
+    }
+}
+
+// Obtain u_red = u(red), where red is the set of redundant DOFs.
+//
+// u (in): vector of size N^3
+// data (in): factor data that contains the redundant indices
+// skel_vec (out): u at the skeleton points
+template <typename Scalar>
+void GetRedundantVector(Vector<Scalar>& u, FactorData<Scalar>& data,
+                        Vector<Scalar>& red_vec) {
+#ifndef RELEASE
+    CallStackEntry entry("GetRedundantVector");
+#endif
+    std::vector<int>& global_inds = data.ind_data().global_inds();
+    std::vector<int>& red_inds = data.ind_data().redundant_inds();
+    red_vec.Resize(red_inds.size());
+    for (size_t i = 0; i < red_inds.size(); ++i) {
+        red_vec.Set(i, u[global_inds[red_inds[i]]]);
+    }
+}
+
+// Copy the skeleton vector back into the global vector, u.
+//
+// u (out): vector of size N^3 that gets updated
+// data (in): factor data containing skeleton indices
+// skel_vec (in): u at the skeleton points, after updating
+template <typename Scalar>
+void CopySkeletonVector(Vector<Scalar>& u, FactorData<Scalar>& data,
+                        Vector<Scalar>& skel_vec) {
+#ifndef RELEASE
+    CallStackEntry entry("CopySkeletonVector");
+#endif
+    std::vector<int>& global_inds = data.ind_data().global_inds();
+    std::vector<int>& skel_inds = data.ind_data().skeleton_inds();
+    assert(skel_vec.Size() == skel_inds.size());
+    for (size_t i = 0; i < skel_inds.size(); ++i) {
+        u.Set(global_inds[skel_inds[i]], skel_vec[i]);
+    }
+}
+
+// Copy the redundant vector back into the global vector, u.
+//
+// u (out): vector of size N^3 that gets updated
+// data (in): factor data containing redundant indices
+// red_vec (in): u at the redundant points, after updating
+template <typename Scalar>
+void CopyRedundantVector(Vector<Scalar>& u, FactorData<Scalar>& data,
+                         Vector<Scalar>& red_vec) {
+#ifndef RELEASE
+    CallStackEntry entry("CopyRedundantVector");
+#endif
+    std::vector<int>& global_inds = data.ind_data().global_inds();
+    std::vector<int>& red_inds = data.ind_data().redundant_inds();
+    assert(red_vec.Size() == red_inds.size());
+    for (size_t i = 0; i < red_inds.size(); ++i) {
+        u.Set(global_inds[red_inds[i]], red_vec[i]);
+    }
+}
+
+// u_skel := alpha op(A) * u_red + u_skel
+//
+// op(A) is either A or A^H, dictated by the input 'adjoint'
+// alpha is plus or minus 1, dictated by the input 'negative'.
+// A is either data.W_mat() (default) or data.X_mat() (dictated by the input
+// 'is_X' set to True)
+// This function updates the entries of u at the skeleton points.
+//
+// u (in): vector or right-hand-side
+// data (in): factorization data that stores op(A)
+// u_skel (in): u at the skeleton points, i.e., the DOFs remaining.
+//              This is not necessarily due to skeletonization.  u_skel
+//              could correspond to the interior of faces in the Schur
+//              factorization _or_ the skeleton points in skeletonization.
+// u_red (in): u at the redundant points, i.e., the DOFs being eliminated.
+// adjoint (in): if true, op(A) = A^H; otherwise, op(A) = A
+// negative (in): if true, alpha = -1; otherwise, alpha = 1
+// is_X (in): if true, A = data.X_mat(); otherwise, A = data.W_mat()
+template <typename Scalar>
+void UpdateSkeleton(Vector<Scalar>& u, FactorData<Scalar>& data,
+                    Vector<Scalar>& u_skel, Vector<Scalar>& u_red,
+                    bool adjoint, bool negative, bool is_X) {
+#ifndef RELEASE
+    CallStackEntry entry("UpdateSkeleton");
+#endif
+    Scalar alpha = Scalar(1.0);
+    if (negative) {
+        alpha = Scalar(-1.0);
+    }
+    Dense<Scalar>& A = data.W_mat();
+    if (is_X) {
+        A = data.X_mat();
+    }
+    if (adjoint) {
+        hmat_tools::AdjointMultiply(alpha, A, u_red, Scalar(1.0), u_skel);
+    } else {
+        hmat_tools::Multiply(alpha, A, u_red, Scalar(1.0), u_skel);
+    }
+    CopySkeletonVector(u, data, u_skel);
+}
+
+// u_red := alpha op(A) * u_skel + u_red
+//
+// op(A) is either A or A^H, dictated by the input 'adjoint'
+// alpha is plus or minus 1, dictated by the input 'negative'.
+// A is either data.W_mat() (default) or data.X_mat() (dictated by the input
+// 'is_X' set to True)
+// This function updates the entries of u at the redundant points.
+//
+// u (in): vector or right-hand-side
+// data (in): factorization data that stores op(A)
+// u_skel (in): u at the skeleton points, i.e., the DOFs remaining.
+//              This is not necessarily due to skeletonization.  u_skel
+//              could correspond to the interior of faces in the Schur
+//              factorization _or_ the skeleton points in skeletonization.
+// u_red (in): u at the redundant points, i.e., the DOFs being eliminated.
+// adjoint (in): if true, op(A) = A^H; otherwise, op(A) = A
+// negative (in): if true, alpha = -1; otherwise, alpha = 1
+// is_X (in): if true, A = data.X_mat(); otherwise, A = data.W_mat()
+template <typename Scalar>
+void UpdateRedundant(Vector<Scalar>& u, FactorData<Scalar>& data,
+                     Vector<Scalar>& u_skel, Vector<Scalar>& u_red,
+                     bool adjoint, bool negative, bool is_X) {
+#ifndef RELEASE
+    CallStackEntry entry("UpdateRedundant");
+#endif
+    Scalar alpha = Scalar(1.0);
+    if (negative) {
+        alpha = Scalar(-1.0);
+    }
+    Dense<Scalar>& A = data.W_mat();
+    if (is_X) {
+        A = data.X_mat();
+    }
+    if (adjoint) {
+        hmat_tools::AdjointMultiply(alpha, A, u_skel, Scalar(1.0), u_red);
+    } else {
+        hmat_tools::Multiply(alpha, A, u_skel, Scalar(1.0), u_red);
+    }
+    CopyRedundantVector(u, data, u_red);
+}
+
+// Apply A_{22} or A_{22}^{-1} to the redundant DOFs.
+//
+// u (out): vector that gets updated
+// data (in): factorization data that contains the redundant indices, A_{22}, and A_{22}^{-1}
+// inverse (in): if true, applies A_{22}^{-1}; otherwise, applies A_{22}
+template <typename Scalar>
+void ApplyA22(Vector<Scalar>& u, FactorData<Scalar>& data, bool inverse) {
+#ifndef RELEASE
+    CallStackEntry entry("ApplyA22");
+#endif
+    Vector<Scalar> u_red;
+    GetRedundantVector(u, data, u_red);
+    Vector<Scalar> result(u_red.Size());
+    if (inverse) {
+        hmat_tools::Multiply(Scalar(1.0), data.A_22_inv(), u_red, result);
+    } else {
+        hmat_tools::Multiply(Scalar(1.0), data.A_22(), u_red, result);
+    }
+    CopyRedundantVector(u, data, result);
+}
+
+template <typename Scalar>
+void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::Apply");
+#endif
+    int num_levels = schur_level_data_.size();
+    assert(num_levels == static_cast<int>(skel_level_data_.size()));
+    assert(u.Size() == (N_ + 1) * (N_ + 1) * (N_ + 1));
+
+    for (int level = 0; level < num_levels - 1; ++level) {
+        for (size_t j = 0; j < schur_level_data_[level].size(); ++j) {
+            FactorData<Scalar>& data = schur_level_data_[level][j];
+            Vector<Scalar> u_skel, u_red;
+            GetSkeletonVector(u, data, u_skel);
+            GetRedundantVector(u, data, u_red);
+            if (apply_inverse) {
+                // u_skel := - X^H * u_red + u_skel
+                UpdateSkeleton(u, data, u_skel, u_red, true, true, true);
+            } else {
+                // u_red := X * u_skel + u_red
+                UpdateRedundant(u, data, u_skel, u_red, false, false, true);
+            }
+        }
+        for (size_t j = 0; j < skel_level_data_[level].size(); ++j) {
+            FactorData<Scalar>& data = skel_level_data_[level][j];
+            Vector<Scalar> u_skel, u_red;
+            GetSkeletonVector(u, data, u_skel);
+            GetRedundantVector(u, data, u_red);
+            if (apply_inverse) {
+                // u_red := -W^H * u_skel + u_red
+                UpdateRedundant(u, data, u_skel, u_red, true, true, false);
+                // u_skel := -X^H * u_red + u_skel
+                UpdateSkeleton(u, data, u_skel, u_red, true, true, true);
+            } else {
+                // u_skel := W * u_red + u_skel
+                UpdateSkeleton(u, data, u_skel, u_red, false, false, false);
+                // u_red := X * u_skel + u_red
+                UpdateRedundant(u, data, u_skel, u_red, false, false, true);
+            }
+        }
+    }
+
+    for (int level = 0; level < num_levels; ++level) {
+        for (size_t j = 0; j < schur_level_data_[level].size(); ++j) {
+            FactorData<Scalar>& data = schur_level_data_[level][j];
+            // u_red := A_22 * u_red
+            ApplyA22(u, data, apply_inverse);
+        }
+        for (size_t j = 0; j < skel_level_data_[level].size(); ++j) {
+            FactorData<Scalar>& data = skel_level_data_[level][j];
+            // u_red := A_22 * u_red
+            ApplyA22(u, data, apply_inverse);
+        }
+    }
+
+    for (int level = num_levels - 2; level >= 0; --level) {
+        for (size_t j = 0; j < skel_level_data_[level].size(); ++j) {
+            FactorData<Scalar>& data = skel_level_data_[level][j];
+            Vector<Scalar> u_skel, u_red;
+            GetSkeletonVector(u, data, u_skel);
+            GetRedundantVector(u, data, u_red);
+            if (apply_inverse) {
+                // u_red := -X * u_skel + u_red
+                UpdateRedundant(u, data, u_skel, u_red, false, true, true);
+                // u_skel := -W * u_red + u_skel
+                UpdateSkeleton(u, data, u_skel, u_red, false, true, false);
+            } else {
+                // u_skel := X * u_red + u_skel
+                UpdateSkeleton(u, data, u_skel, u_red, true, false, true);
+                // u_red := W * u_skel + u_red
+                UpdateRedundant(u, data, u_skel, u_red, true, false, false);
+            }
+        }
+        for (size_t j = 0; j < schur_level_data_[level].size(); ++j) {
+            FactorData<Scalar>& data = schur_level_data_[level][j];
+            Vector<Scalar> u_skel, u_red;
+            GetSkeletonVector(u, data, u_skel);
+            GetRedundantVector(u, data, u_red);
+            if (apply_inverse) {
+                // u_red := -X * u_skel + u_red
+                UpdateRedundant(u, data, u_skel, u_red, false, true, false);
+            } else {
+                // u_skel := X * u_red + u_skel
+                UpdateSkeleton(u, data, u_skel, u_red, true, false, true);
+            }
+        }
+    }
+}
+
 template <typename Scalar>
 double RelativeErrorNorm2(Vector<Scalar>& x, Vector<Scalar>& y) {
     assert(x.Size() == y.Size());
     double err = 0;
     double norm = 0;
     for (int i = 0; i < x.Size(); ++i) {
-	Scalar xi = x.Get(i);
-	Scalar yi = y.Get(i);
-	double diff = std::abs(xi - yi);
-	err += diff * diff;
-	norm += std::abs(xi) * std::abs(xi);
+        Scalar xi = x.Get(i);
+        Scalar yi = y.Get(i);
+        double diff = std::abs(xi - yi);
+        err += diff * diff;
+        norm += std::abs(xi) * std::abs(xi);
     }
     return sqrt(err / norm);
 }
@@ -679,15 +946,15 @@ void SpMV(Sparse<Scalar>& A, Vector<Scalar>& x, Vector<Scalar>& y) {
     assert(x.Size() == y.Size());
     assert(A.Width() == x.Size());
     for (int i = 0; i < A.Height(); ++i) {
-	Vector<Scalar> row;
-	Vector<int> inds;
-	A.Find(i, inds, row);
-	Scalar val = Scalar(0);
-	assert(row.Size() == inds.Size());
-	for (int j = 0; j < row.Size(); ++j) {
-	    val += row.Get(j) * x.Get(inds.Get(j));
-	}
-	y.Set(i, val);
+        Vector<Scalar> row;
+        Vector<int> inds;
+        A.Find(i, inds, row);
+        Scalar val = Scalar(0);
+        assert(row.Size() == inds.Size());
+        for (int j = 0; j < row.Size(); ++j) {
+            val += row.Get(j) * x.Get(inds.Get(j));
+        }
+        y.Set(i, val);
     }
 }
 

@@ -74,6 +74,7 @@ public:
     void Set( int i, int j, Scalar value );
     Scalar Get( int i, int j ) const;
     void Print( const std::string tag, std::ostream& os=std::cout ) const;
+    void Print2( const std::string tag, std::ostream& os=std::cout ) const;
 
     Scalar* Buffer( int i=0, int j=0 );
     const Scalar* LockedBuffer( int i=0, int j=0 ) const;
@@ -486,6 +487,38 @@ Dense<Scalar>::Print( const std::string tag, std::ostream& os ) const
         {
             for( int j=0; j<width_; ++j )
                 os << WrapScalar(Get(i,j)) << " ";
+            os << "\n";
+        }
+    }
+    os.flush();
+}
+
+template<typename Scalar>
+inline void
+Dense<Scalar>::Print2( const std::string tag, std::ostream& os ) const
+{
+#ifndef RELEASE
+    CallStackEntry entry("Dense::Print");
+#endif
+    os.precision(5);
+    os << tag << "\n";
+    if( type_ == SYMMETRIC )
+    {
+        for( int i=0; i<height_; ++i )
+        {
+            for( int j=0; j<=i; ++j )
+                os << Get(i,j) << " ";
+            for( int j=i+1; j<width_; ++j )
+                os << Get(j,i) << " ";
+            os << "\n";
+        }
+    }
+    else
+    {
+        for( int i=0; i<height_; ++i )
+        {
+            for( int j=0; j<width_; ++j )
+                os << Get(i,j) << " ";
             os << "\n";
         }
     }
