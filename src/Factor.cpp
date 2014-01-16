@@ -388,6 +388,7 @@ void HIFFactor<Scalar>::InteriorCellIndexData(Index3 cell_location, int level,
             }
         }
     }
+    //std::cout << skel_inds.size() << std::endl;
 }
 
 template <typename Scalar>
@@ -673,7 +674,9 @@ void GetSkeletonVector(Vector<Scalar>& u, FactorData<Scalar>& data,
     std::vector<int>& skel_inds = data.ind_data().skeleton_inds();
     skel_vec.Resize(skel_inds.size());
     for (size_t i = 0; i < skel_inds.size(); ++i) {
-        skel_vec.Set(i, u[global_inds[skel_inds[i]]]);
+        assert(skel_inds[i] < global_inds.size());
+        assert(global_inds[skel_inds[i]] < u.Size());
+        skel_vec.Set(i, u.Get(global_inds[skel_inds[i]]));
     }
 }
 
@@ -692,7 +695,9 @@ void GetRedundantVector(Vector<Scalar>& u, FactorData<Scalar>& data,
     std::vector<int>& red_inds = data.ind_data().redundant_inds();
     red_vec.Resize(red_inds.size());
     for (size_t i = 0; i < red_inds.size(); ++i) {
-        red_vec.Set(i, u[global_inds[red_inds[i]]]);
+        assert(red_inds[i] < global_inds.size());
+        assert(global_inds[red_inds[i]] < u.Size());
+        red_vec.Set(i, u.Get(global_inds[red_inds[i]]));
     }
 }
 
@@ -711,6 +716,7 @@ void CopySkeletonVector(Vector<Scalar>& u, FactorData<Scalar>& data,
     std::vector<int>& skel_inds = data.ind_data().skeleton_inds();
     assert(skel_vec.Size() == skel_inds.size());
     for (size_t i = 0; i < skel_inds.size(); ++i) {
+        assert(skel_inds[i] < global_inds.size());
         u.Set(global_inds[skel_inds[i]], skel_vec[i]);
     }
 }
@@ -730,6 +736,7 @@ void CopyRedundantVector(Vector<Scalar>& u, FactorData<Scalar>& data,
     std::vector<int>& red_inds = data.ind_data().redundant_inds();
     assert(red_vec.Size() == red_inds.size());
     for (size_t i = 0; i < red_inds.size(); ++i) {
+        assert(red_inds[i] < global_inds.size());
         u.Set(global_inds[red_inds[i]], red_vec[i]);
     }
 }
@@ -759,6 +766,9 @@ void UpdateSkeleton(Vector<Scalar>& u, FactorData<Scalar>& data,
 #ifndef RELEASE
     CallStackEntry entry("UpdateSkeleton");
 #endif
+    if (u_red.Size() == 0) {
+	return;  // nothing to do
+    }
     Scalar alpha = Scalar(1.0);
     if (negative) {
         alpha = Scalar(-1.0);
@@ -800,6 +810,10 @@ void UpdateRedundant(Vector<Scalar>& u, FactorData<Scalar>& data,
 #ifndef RELEASE
     CallStackEntry entry("UpdateRedundant");
 #endif
+    if (u_skel.Size() == 0) {
+	return;  // nothing to do
+    }
+
     Scalar alpha = Scalar(1.0);
     if (negative) {
         alpha = Scalar(-1.0);
@@ -847,6 +861,7 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
     assert(u.Size() == (N_ + 1) * (N_ + 1) * (N_ + 1));
 
     for (int level = 0; level < num_levels - 1; ++level) {
+	std::cout << "Applying at level " << level << std::endl;
         for (size_t j = 0; j < schur_level_data_[level].size(); ++j) {
             FactorData<Scalar>& data = schur_level_data_[level][j];
             Vector<Scalar> u_skel, u_red;

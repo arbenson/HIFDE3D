@@ -9,7 +9,7 @@ int main() {
     // manual call stack.
     try {
 #endif
-    int N = 8-1;
+    int N = 32-1;
     int P = 4;
     double epsilon = 1e-3;
     HIFFactor<double> factor(N, P, epsilon);
