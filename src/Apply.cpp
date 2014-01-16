@@ -184,7 +184,7 @@ void ApplyA22(Vector<Scalar>& u, FactorData<Scalar>& data, bool inverse) {
 }
 
 template <typename Scalar>
-void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool inverse) {
+void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
 #ifndef RELEASE
     CallStackEntry entry("HIFFactor::Apply");
 #endif
@@ -198,7 +198,7 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool inverse) {
             Vector<Scalar> u_skel, u_red;
             GetSkeletonVector(u, data, u_skel);
             GetRedundantVector(u, data, u_red);
-            if (inverse) {
+            if (apply_inverse) {
                 // u_skel := - X^H * u_red + u_skel
                 UpdateSkeleton(u, data, u_skel, u_red, true, true, true);
             } else {
@@ -211,7 +211,7 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool inverse) {
             Vector<Scalar> u_skel, u_red;
             GetSkeletonVector(u, data, u_skel);
             GetRedundantVector(u, data, u_red);
-            if (inverse) {
+            if (apply_inverse) {
                 // u_red := -W^H * u_skel + u_red
                 UpdateRedundant(u, data, u_skel, u_red, true, true, false);
                 // u_skel := -X^H * u_red + u_skel
@@ -229,12 +229,12 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool inverse) {
         for (size_t j = 0; j < schur_level_data_[level].size(); ++j) {
             FactorData<Scalar>& data = schur_level_data_[level][j];
             // u_red := A_22 * u_red
-            ApplyA22(u, data, inverse);
+            ApplyA22(u, data, apply_inverse);
         }
         for (size_t j = 0; j < skel_level_data_[level].size(); ++j) {
             FactorData<Scalar>& data = skel_level_data_[level][j];
             // u_red := A_22 * u_red
-            ApplyA22(u, data, inverse);
+            ApplyA22(u, data, apply_inverse);
         }
     }
 
@@ -244,7 +244,7 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool inverse) {
             Vector<Scalar> u_skel, u_red;
             GetSkeletonVector(u, data, u_skel);
             GetRedundantVector(u, data, u_red);
-            if (inverse) {
+            if (apply_inverse) {
                 // u_red := -X * u_skel + u_red
                 UpdateRedundant(u, data, u_skel, u_red, false, true, true);
                 // u_skel := -W * u_red + u_skel
@@ -261,7 +261,7 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool inverse) {
             Vector<Scalar> u_skel, u_red;
             GetSkeletonVector(u, data, u_skel);
             GetRedundantVector(u, data, u_red);
-            if (inverse) {
+            if (apply_inverse) {
                 // u_red := -X * u_skel + u_red
                 UpdateRedundant(u, data, u_skel, u_red, false, true, false);
             } else {
