@@ -26,7 +26,7 @@ int main() {
                            || j == NC || k == NC) {
                     V(ind) = 0;
                 } else {
-                    V(ind) = 1;
+                    V(ind) = 0;
                 }
             }
         }
