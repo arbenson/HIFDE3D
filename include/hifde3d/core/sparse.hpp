@@ -12,29 +12,22 @@
 
 namespace hifde3d {
 
-// A simple Compressed Sparse Row (CSR) data structure
+// A simple Compressed Sparse Col (CSR) data structure
 template<typename Scalar>
 class Sparse
 {
 private:
-    int height_, width_, nnz_;
+    int height_, width_;
     std::map<int,std::map<int,Scalar> > sparsemat_;
 
 public:
     Sparse();
     Sparse( int height, int width );
-
-    // This function should not be used, dengerous.
-    Sparse( const Sparse<Scalar>& x );
     ~Sparse();
 
     int Height() const{ return height_; }
     int Width() const{ return width_; }
-    int NonZeros() const{ return nnz_; }
-
-    // This function should not be used, dengerous.
-    std::map<int,std::map<int,Scalar> > SparseMat() const
-    { return sparsemat_; }
+    int NonZeros() const;
 
     void Add( int i, int j, Scalar val );
     void Add( Vector<int>& iidx, Vector<int>& jidx, Dense<Scalar>& vals );
@@ -56,17 +49,6 @@ public:
     void FindRow( int i, Vector<Scalar>& res, Vector<int>& inds);
     void FindCol( int j, Vector<Scalar>& res ) const;
 
-    /*
-    Scalar& operator()( int i, int j )
-    { return Find(i,j); }
-    Dense<Scalar>& operator()( Vector<int>& iidx, Vector<int>& jidx )
-    { return Find(iidx,jidx); }
-    Vector<Scalar>& operator()( int i, Vector<int>& jidx )
-    { return Find(i,jidx); }
-    Vector<Scalar>& operator()( Vector<int>& iidx, int j )
-    { return Find(iidx,j); }
-    */
-
     void Clear();
     void Print( const std::string tag, std::ostream& os=std::cout ) const;
 };
@@ -77,22 +59,14 @@ public:
 template<typename Scalar>
 inline
 Sparse<Scalar>::Sparse()
-: height_(0), width_(0), nnz_(0)
+: height_(0), width_(0)
 {}
 
 template<typename Scalar>
 inline
 Sparse<Scalar>::Sparse( int height, int width )
-: height_(height), width_(width), nnz_(0)
+: height_(height), width_(width)
 {}
-
-template<typename Scalar>
-inline
-Sparse<Scalar>::Sparse( const Sparse<Scalar>& x )
-: height_(x.Height), width_(x.Width), nnz_(x.NonZeros)
-{
-    sparsemat_ = x.SparseMat();
-}
 
 template<typename Scalar>
 inline
@@ -108,24 +82,21 @@ Sparse<Scalar>::Add( int i, int j, Scalar val )
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Add");
 #endif
-    if( sparsemat_.find(i) == sparsemat_.end() )
-    {
-        sparsemat_[i] = new std::map<int, Scalar>;
-        sparsemat_[i][j] = val;
-        nnz_++;
-    }
-    else
-    {
-        std::map<int, Scalar> &irow = sparsemat_[i];
-        if( irow.find(j) != irow.end() )
-        {
-            irow[j] += val;
-        }
-        else
-        {
-            irow[j] = val;
-            nnz_++;
-        }
+    sparsemat_[j][i] += val;
+}
+
+template<typename Scalar>
+inline void
+Sparse<Scalar>::Add( Vector<int>& iidx, int j, Vector<Scalar>& vals )
+{
+#ifndef RELEASE
+    CallStackEntry entry("Sparse::Add");
+#endif
+    std::map<int, Scalar>& jcol = sparsemat_[j];
+    for( int iter=0; iter<iidx.Size(); ++iter )
+	{
+        int i = iidx.Get(iter);
+        jcol[i] += vals.Get(iter);
     }
 }
 
@@ -136,65 +107,10 @@ Sparse<Scalar>::Add( int i, Vector<int>& jidx, Vector<Scalar>& vals )
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Add");
 #endif
-    if( sparsemat_.find(i) == sparsemat_.end() )
+    for( int iterj=0; iterj<jidx.Size(); ++iterj )
     {
-	std::map<int, Scalar>& irow = sparsemat_[i];
-        for( int iter=0; iter<jidx.Size(); ++iter )
-		{
-            int j = jidx.Get(iter);
-            irow[j] = vals.Get(iter);
-            nnz_++;
-        }
-    }
-    else
-    {
-        std::map<int, Scalar> &irow = sparsemat_[i];
-        for( int iter=0; iter<jidx.Size(); ++iter )
-		{
-            int j = jidx.Get(iter);
-            if( irow.find(j) != irow.end() )
-            {
-                irow[j] += vals.Get(iter);
-            }
-            else
-            {
-                irow[j] = vals.Get(iter);
-                nnz_++;
-            }
-        }
-    }
-}
-
-template<typename Scalar>
-inline void
-Sparse<Scalar>::Add( Vector<int>& iidx, int j, Vector<Scalar>& vals )
-{
-#ifndef RELEASE
-    CallStackEntry entry("Sparse::Add");
-#endif
-    for( int iteri=0; iteri<iidx.Size(); ++iteri )
-    {
-        int i = iidx.Get(iteri);
-        if( sparsemat_.find(i) == sparsemat_.end() )
-        {
-            sparsemat_[i] = new std::map<int, Scalar>;
-            std::map<int, Scalar> &irow = sparsemat_[i];
-            irow[j] = vals.Get(iteri);
-            nnz_++;
-        }
-        else
-        {
-            std::map<int, Scalar> &irow = sparsemat_[i];
-            if( irow.find(j) != irow.end() )
-            {
-                irow[j] += vals.Get(iteri);
-            }
-            else
-            {
-                irow[j] = vals.Get(iteri);
-                nnz_++;
-            }
-        }
+        int j = jidx.Get(iterj);
+        sparsemat_[j][i] += vals.Get(iterj);
     }
 }
 
@@ -206,36 +122,14 @@ Sparse<Scalar>::Add( Vector<int>& iidx, Vector<int>& jidx,
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Add");
 #endif
-    for( int iteri=0; iteri<iidx.Size(); ++iteri )
+    for( int iterj=0; iterj<jidx.Size(); ++iterj )
     {
-        int i = iidx.Get(iteri);
-        if( sparsemat_.find(i) == sparsemat_.end() )
-        {
-            sparsemat_[i] = new std::map<int, Scalar>;
-            std::map<int, Scalar> &irow = sparsemat_[i];
-            for( int iter=0; iter<jidx.Size(); ++iter )
-	    	{
-                int j = jidx.Get(iter);
-                irow[j] = vals.Get(iter);
-                nnz_++;
-            }
-        }
-        else
-        {
-            std::map<int, Scalar> &irow = sparsemat_[i];
-            for( int iter=0; iter<jidx.Size(); ++iter )
-	    	{
-                int j = jidx.Get(iter);
-                if( irow.find(j) != irow.end() )
-                {
-                    irow[j] += vals.Get(iter);
-                }
-                else
-                {
-                    irow[j] = vals.Get(iter);
-                    nnz_++;
-                }
-            }
+        int j = jidx.Get(iterj);
+        std::map<int, Scalar> &jcol = sparsemat_[j];
+        for( int iter=0; iter<iidx.Size(); ++iter )
+	    {
+            int i = jidx.Get(iter);
+            jcol[i] += vals.Get(iter);
         }
     }
 }
@@ -247,30 +141,8 @@ Sparse<Scalar>::Delete( int i, int j )
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Delete");
 #endif
-    if( sparsemat_.find(i) != sparsemat_.end() )
-    {
-        std::map<int, Scalar> &irow = sparsemat_[i];
-        if( irow.find(j) != irow.end() )
-        {
-            irow.erase(j);
-            nnz_--;
-        }
-    }
-}
-
-template<typename Scalar>
-inline void
-Sparse<Scalar>::DeleteRow( int i )
-{
-#ifndef RELEASE
-    CallStackEntry entry("Sparse::DeleteRow");
-#endif
-    if( sparsemat_.find(i) != sparsemat_.end() )
-    {
-        std::map<int, Scalar> &irow = sparsemat_[i];
-        nnz_ -= irow.size();
-        irow.clear();
-    }
+    std::map<int, Scalar> &jcol = sparsemat_[j];
+    jcol.erase(i);
 }
 
 template<typename Scalar>
@@ -280,34 +152,24 @@ Sparse<Scalar>::DeleteCol( int j )
 #ifndef RELEASE
     CallStackEntry entry("Sparse::DeleteCol");
 #endif
-    typename std::map<int,std::map<int,Scalar> >::iterator it;
-    for( it=sparsemat_.begin(); it!=sparsemat_.end(); ++it )
-    {
-        std::map<int, Scalar> &irow = it->second;
-        if( irow.find(j) != irow.end() )
-        {
-            irow.erase(j);
-            nnz_--;
-        }
-    }
+        sparsemat_[j].clear();
 }
 
 template<typename Scalar>
 inline void
-Sparse<Scalar>::DeleteRow( Vector<int>& iidx )
+Sparse<Scalar>::DeleteRow( int i )
 {
 #ifndef RELEASE
     CallStackEntry entry("Sparse::DeleteRow");
 #endif
-    for( int iter=0; iter<iidx.Size(); ++iter )
+    typename std::map<int,std::map<int,Scalar> >::iterator it;
+    for( it=sparsemat_.begin(); it!=sparsemat_.end(); ++it )
     {
-        int i = iidx.Get(iter);
-        DeleteRow(i);
+        std::map<int, Scalar> &jcol = it->second;
+        jcol.erase(i);
     }
 }
 
-//DeleteCol(vector) can be rewrite, which could
-//reduce the complexity by a factor of constant.
 template<typename Scalar>
 inline void
 Sparse<Scalar>::DeleteCol( Vector<int>& jidx )
@@ -315,18 +177,31 @@ Sparse<Scalar>::DeleteCol( Vector<int>& jidx )
 #ifndef RELEASE
     CallStackEntry entry("Sparse::DeleteCol");
 #endif
+    for( int iter=0; iter<jidx.Size(); ++iter )
+    {
+        int j = jidx.Get(iter);
+        sparsemat_[j].clear();
+    }
+}
+
+//DeleteCol(vector) can be rewrite, which could
+//reduce the complexity by a factor of constant.
+template<typename Scalar>
+inline void
+Sparse<Scalar>::DeleteRow( Vector<int>& iidx )
+{
+#ifndef RELEASE
+    CallStackEntry entry("Sparse::DeleteRow");
+#endif
     typename std::map<int,std::map<int,Scalar> >::iterator it;
     for( it=sparsemat_.begin(); it!=sparsemat_.end(); ++it )
     {
-	std::map<int, Scalar> &irow = it->second;
-	// std::cout << it->first << std::endl;
-	for (int iter=0; iter<jidx.Size(); ++iter) {
-	    int j = jidx.Get(iter);
-	    if( irow.find(j) != irow.end() ) {
-		    irow.erase(j);
-		    nnz_--;
+	    std::map<int, Scalar> &jcol = it->second;
+	    for (int iter=0; iter<iidx.Size(); ++iter)
+        {
+	        int i = iidx.Get(iter);
+		    jcol.erase(i);
 	    }
-	}
     }
 }
 
@@ -337,21 +212,14 @@ Sparse<Scalar>::Delete( Vector<int>& iidx, Vector<int>& jidx )
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Delete");
 #endif
-    for( int iteri=0; iteri<iidx.Size(); ++iteri )
+    for( int iterj=0; iterj<jidx.Size(); ++iterj )
     {
-        int i = iidx.Get(iteri);
-        if( sparsemat_.find(i) != sparsemat_.end() )
-        {
-            std::map<int, Scalar> &irow = sparsemat_[i];
-            for( int iter=0; iter<jidx.Size(); ++iter )
-	    	{
-                int j = jidx.Get(iter);
-                if( irow.find(j) != irow.end() )
-                {
-                    irow.erase(j);
-                    nnz_--;
-                }
-            }
+        int j = jidx.Get(iterj);
+        std::map<int, Scalar> &jcol = sparsemat_[j];
+        for( int iter=0; iter<iidx.Size(); ++iter )
+	    {
+            int i = iidx.Get(iter);
+            jcol.erase(i);
         }
     }
 }
@@ -363,11 +231,11 @@ Sparse<Scalar>::Find( int i, int j )
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Find");
 #endif
-    if( sparsemat_.find(i) != sparsemat_.end() )
+    if( sparsemat_.find(j) != sparsemat_.end() )
     {
-        std::map<int, Scalar> irow = sparsemat_[i];
-        if( irow.find(j) != irow.end() )
-            return irow[j];
+        std::map<int, Scalar> jcol = sparsemat_[j];
+        if( jcol.find(i) != jcol.end() )
+            return jcol[i];
         else
         {
 #ifndef RELEASE
@@ -390,10 +258,10 @@ Sparse<Scalar>::Check( int i, int j ) const
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Check");
 #endif
-    if( sparsemat_.find(i) != sparsemat_.end() )
+    if( sparsemat_.find(j) != sparsemat_.end() )
     {
-        std::map<int, Scalar>& irow = sparsemat_[i];
-        if( irow.find(j) != irow.end() )
+        std::map<int, Scalar>& jcol = sparsemat_[j];
+        if( jcol.find(i) != jcol.end() )
             return true;
         else
             return false;
@@ -410,69 +278,28 @@ Sparse<Scalar>::Find
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Find");
 #endif
-    for( int iteri=0; iteri<iidx.Size(); ++iteri )
+    for( int iterj=0; iterj<jidx.Size(); ++iterj )
     {
-        int i = iidx.Get(iteri);
-        if( sparsemat_.find(i) != sparsemat_.end() )
+        int j = jidx.Get(iterj);
+        if( sparsemat_.find(j) != sparsemat_.end() )
         {
-	    /*
-	    std::cout << "i: " << i << std::endl;
-	    */
-	    std::map<int, Scalar>& irow = sparsemat_[i];
-            for( int iterj=0; iterj<jidx.Size(); ++iterj )
+	        std::map<int, Scalar>& jcol = sparsemat_[j];
+            for( int iteri=0; iteri<iidx.Size(); ++iteri )
             {
-                int j = jidx.Get(iterj);
-                if( irow.find(j) != irow.end() ) {
-		    /*
-		    if (i == 2081) {
-			std::cout << "found: " << i << " " << j << " " << irow[j] << std::endl;
-		    }
-		    */
-                    D.Set(iteri,iterj,irow[j]);
-		}
+                int i = iidx.Get(iteri);
+                if( jcol.find(i) != jcol.end() ) {
+                    D.Set(iteri,iterj,jcol[i]);
+	         	}
                 else {
-		    /*
-		    if (i == 2081) {
-			std::cout << "could not find: " << i << " " << j << std::endl;
-		    }
-		    */
                     D.Set(iteri,iterj,(Scalar)0);
-		}
+		        }
             }
         }
         else
         {
-	    std::cout << "found zero row!!" << std::endl;
-            for( int iterj=0; iterj<jidx.Size(); ++ iterj )
+            for( int iteri=0; iteri<iidx.Size(); ++ iteri )
                 D.Set(iteri,iterj,(Scalar)0);
         }
-    }
-}
-
-template<typename Scalar>
-inline void
-Sparse<Scalar>::Find
-( int i, Vector<int>& jidx, Vector<Scalar>& vec )
-{
-#ifndef RELEASE
-    CallStackEntry entry("Sparse::Find");
-#endif
-    if( sparsemat_.find(i) != sparsemat_.end() )
-    {
-        std::map<int, Scalar> &irow = sparsemat_[i];
-        for( int iterj=0; iterj<jidx.Size(); ++iterj )
-        {
-            int j = jidx.Get(iterj);
-            if( irow.find(j) != irow.end() )
-                vec.Set(iterj,irow[j]);
-            else
-                vec.Set(iterj,(Scalar)0);
-        }
-    }
-    else
-    {
-        for( int iterj=0; iterj<jidx.Size(); ++ iterj )
-            vec.Set(iterj,(Scalar)0);
     }
 }
 
@@ -484,57 +311,46 @@ Sparse<Scalar>::Find
 #ifndef RELEASE
     CallStackEntry entry("Sparse::Find");
 #endif
-    for( int iteri=0; iteri<iidx.Size(); ++iteri )
+    if( sparsemat_.find(j) != sparsemat_.end() )
     {
-        int i = iidx.Get(iteri);
-        if( sparsemat_.find(i) != sparsemat_.end() )
+        std::map<int, Scalar> &jcol = sparsemat_[j];
+        for( int iteri=0; iteri<iidx.Size(); ++iteri )
         {
-            std::map<int, Scalar> &irow = sparsemat_[i];
-            if( irow.find(j) != irow.end() )
-                vec.Set(iteri,irow[j]);
+            int i = iidx.Get(iteri);
+            if( jcol.find(i) != jcol.end() )
+                vec.Set(iteri,jcol[i]);
             else
                 vec.Set(iteri,(Scalar)0);
         }
-        else
+    }
+    else
+    {
+        for( int iteri=0; iteri<iidx.Size(); ++ iteri )
             vec.Set(iteri,(Scalar)0);
     }
 }
 
 template<typename Scalar>
 inline void
-Sparse<Scalar>::FindRow( int i, Vector<Scalar>& vec ) const
+Sparse<Scalar>::Find
+( int i, Vector<int>& jidx, Vector<Scalar>& vec )
 {
 #ifndef RELEASE
-    CallStackEntry entry("Sparse::FindRow");
+    CallStackEntry entry("Sparse::Find");
 #endif
-    if( sparsemat_.find(i) != sparsemat_.end() )
+    for( int iterj=0; iterj<jidx.Size(); ++iterj )
     {
-        std::map<int,Scalar> &irow = sparsemat_[i];
-        typename std::map<int,Scalar>::iterator it;
-        for( it=irow.begin(); it!=irow.end(); ++it )
-            vec.Set(it->first,it->second);
-    }
-}
-
-template<typename Scalar>
-inline void
-Sparse<Scalar>::FindRow( int i, Vector<Scalar>& vec, Vector<int>& inds )
-{
-#ifndef RELEASE
-    CallStackEntry entry("Sparse::FindRow");
-#endif
-    if( sparsemat_.find(i) != sparsemat_.end() )
-    {
-        std::map<int,Scalar> &irow = sparsemat_[i];
-        vec.Resize(irow.size());
-	inds.Resize(irow.size());
-        typename std::map<int,Scalar>::iterator it;
-	int n = 0;
-        for( it=irow.begin(); it!=irow.end(); ++it ) {
-	    inds.Set(n, it->first);
-	    vec.Set(n, it->second);
-	    ++n;
-	}
+        int j = jidx.Get(iterj);
+        if( sparsemat_.find(j) != sparsemat_.end() )
+        {
+            std::map<int, Scalar> &jcol = sparsemat_[j];
+            if( jcol.find(i) != jcol.end() )
+                vec.Set(iterj,jcol[i]);
+            else
+                vec.Set(iterj,(Scalar)0);
+        }
+        else
+            vec.Set(iterj,(Scalar)0);
     }
 }
 
@@ -545,13 +361,48 @@ Sparse<Scalar>::FindCol( int j, Vector<Scalar>& vec ) const
 #ifndef RELEASE
     CallStackEntry entry("Sparse::FindCol");
 #endif
+    vec.Resize(height_);
+    if( sparsemat_.find(j) != sparsemat_.end() )
+    {
+        std::map<int,Scalar> &jcol = sparsemat_[j];
+        typename std::map<int,Scalar>::iterator it;
+        for( it=jcol.begin(); it!=jcol.end(); ++it )
+            vec.Set(it->first,it->second);
+    }
+}
+
+template<typename Scalar>
+inline void
+Sparse<Scalar>::FindRow( int i, Vector<Scalar>& vec ) const
+{
+#ifndef RELEASE
+    CallStackEntry entry("Sparse::FindRow");
+#endif
+    vec.Resize(width_);
     typename std::map<int,std::map<int,Scalar> >::iterator it;
     for( it=sparsemat_.begin(); it!=sparsemat_.end(); ++it )
     {
-        std::map<int, Scalar> &irow = it->second;
-        if( irow.find(j) != irow.end() )
-            vec.Set(it->first,irow[j]);
+        std::map<int, Scalar> &jcol = it->second;
+        if( jcol.find(i) != jcol.end() )
+            vec.Set(it->first,jcol[i]);
     }
+}
+
+template<typename Scalar>
+inline int
+Sparse<Scalar>::NonZeros() const
+{
+#ifndef RELEASE
+    CallStackEntry entry("Sparse::NonZeros");
+#endif
+    int nnz = 0;
+    typename std::map<int,std::map<int,Scalar> >::iterator it;
+    for( it=sparsemat_.begin(); it!=sparsemat_.end(); ++it )
+    {
+        std::map<int, Scalar> &jcol = it->second;
+        nnz += jcol.size();
+    }
+    return nnz;
 }
 
 template<typename Scalar>
@@ -563,7 +414,6 @@ Sparse<Scalar>::Clear()
 #endif
     height_ = 0;
     width_ = 0;
-    nnz_ = 0;
     sparsemat_.clear();
 }
 
@@ -579,10 +429,10 @@ Sparse<Scalar>::Print( const std::string tag, std::ostream& os ) const
     typename std::map<int,std::map<int,Scalar> >::iterator it;
     for( it=sparsemat_.begin(); it!=sparsemat_.end(); ++it )
     {
-        std::map<int, Scalar> &irow = it->second;
+        std::map<int, Scalar> &jcol = it->second;
         typename std::map<int, Scalar>::iterator itinner;
-        for( itinner=irow.begin(); itinner!=irow.end(); ++itinner )
-            os << it->first << " " << itinner->first << " "
+        for( itinner=jcol.begin(); itinner!=jcol.end(); ++itinner )
+            os << itinner->first << " " << it->first << " "
                << WrapScalar(itinner->second) << "\n";
     }
     os << std::endl;
