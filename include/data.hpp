@@ -41,6 +41,17 @@ public:
 	}
     }
 
+    void PrintGlobal() {
+	std::cout << "Redundant (global): " << std::endl;
+	for (size_t i = 0; i < redundant_inds_.size(); ++i) {
+	    std::cout << global_inds_[redundant_inds_[i]] << std::endl;
+	}
+	std::cout << "Skeleton (global): " << std::endl;
+	for (size_t i = 0; i < redundant_inds_.size(); ++i) {
+	    std::cout << global_inds_[skeleton_inds_[i]] << std::endl;
+	}
+    }
+
 private:
     std::vector<int> global_inds_;         // indices into N^3 x N^3 system
     std::vector<int> redundant_inds_;      // indices of global_inds_ corresponding
