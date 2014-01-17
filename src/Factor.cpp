@@ -104,14 +104,14 @@ void HIFFactor<Scalar>::UpdateRemainingDOFs(int level, FactorType ftype) {
     std::vector<int> eliminated_DOFs;
 
     // Gather the DOFs
-    std::vector< FactorData<Scalar> >& level_data = schur_level_data_[level];
+    std::vector< FactorData<Scalar> > *level_data = &schur_level_data_[level];
     if (ftype == SKEL) {
-        level_data = skel_level_data_[level];
+        level_data = &skel_level_data_[level];
     }
 
-    for (size_t i = 0; i < level_data.size(); ++i) {
-        std::vector<int>& red_inds = level_data[i].ind_data().redundant_inds();
-        std::vector<int>& global_inds = level_data[i].ind_data().global_inds();
+    for (size_t i = 0; i < level_data->size(); ++i) {
+        std::vector<int>& red_inds = (*level_data)[i].ind_data().redundant_inds();
+        std::vector<int>& global_inds = (*level_data)[i].ind_data().global_inds();
         for (size_t j = 0; j < red_inds.size(); ++j) {
             eliminated_DOFs.push_back(global_inds[red_inds[j]]);
         }
@@ -271,19 +271,19 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, FactorType ftype) {
 #ifndef RELEASE
     CallStackEntry entry("HIFFactor::UpdateMatrixAndDOFs");
 #endif
-    std::vector< FactorData<Scalar> >& level_data = schur_level_data_[level];
+    std::vector< FactorData<Scalar> > *level_data = &schur_level_data_[level];
     if (ftype == SKEL) {
-        level_data = skel_level_data_[level];
+        level_data = &skel_level_data_[level];
     }
 
     std::map<int, std::pair< Vector<int>, Vector<Scalar> > > vals;
     Vector<int> del_inds;
 
     // TODO: this process of forming iidx, jidx, and vals could be faster.
-    std::cout << "Number of FactorDatas to process: " << level_data.size()
+    std::cout << "Number of FactorDatas to process: " << level_data->size()
               << std::endl;
-    for (size_t n = 0; n < level_data.size(); ++n) {
-        FactorData<Scalar>& data = level_data[n];
+    for (size_t n = 0; n < level_data->size(); ++n) {
+        FactorData<Scalar>& data = (*level_data)[n];
         IndexData& ind_data = data.ind_data();
         std::vector<int>& skel_inds = ind_data.skeleton_inds();
         std::vector<int>& global_inds = ind_data.global_inds();
@@ -836,7 +836,7 @@ void UpdateRedundant(Vector<Scalar>& u, FactorData<Scalar>& data,
 // data (in): factorization data that contains the redundant indices, A_{22}, and A_{22}^{-1}
 // inverse (in): if true, applies A_{22}^{-1}; otherwise, applies A_{22}
 template <typename Scalar>
-void ApplyA22(Vector<Scalar>& u, FactorData<Scalar>& data, bool inverse) {
+void ApplyA22(Vector<Scalar>& u, FactorData<Scalar>& data, bool inverse, int level) {
 #ifndef RELEASE
     CallStackEntry entry("ApplyA22");
 #endif
@@ -896,10 +896,8 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
                 // u_skel := -X^H * u_red + u_skel
                 UpdateSkeleton(u, data, u_skel, u_red, true, true, true);
             } else {
-		if (level == 2) { std::cout << "Updating..." << std::endl; }
                 // u_skel := W * u_red + u_skel
                 UpdateSkeleton(u, data, u_skel, u_red, false, false, false);
-		if (level == 2) { std::cout << "Done updating..." << std::endl; }
                 // u_red := X * u_skel + u_red
                 UpdateRedundant(u, data, u_skel, u_red, false, false, true);
             }
@@ -907,18 +905,19 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
     }
 
     std::cout << "Applying inverses..." << std::endl;
+    std::cout << schur_level_data_[0].size() << std::endl;
 
     for (int level = 0; level < num_levels; ++level) {
 	std::cout << "Applying at level " << level << std::endl;
         for (size_t j = 0; j < schur_level_data_[level].size(); ++j) {
             FactorData<Scalar>& data = schur_level_data_[level][j];
-            // u_red := A_22 * u_red
-            ApplyA22(u, data, apply_inverse);
+            // u_red := A^{-1}_22 * u_red
+            ApplyA22(u, data, apply_inverse, level);
         }
         for (size_t j = 0; j < skel_level_data_[level].size(); ++j) {
             FactorData<Scalar>& data = skel_level_data_[level][j];
             // u_red := A_22 * u_red
-            ApplyA22(u, data, apply_inverse);
+            ApplyA22(u, data, apply_inverse, level);
         }
     }
 

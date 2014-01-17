@@ -57,7 +57,6 @@ int main() {
 	    }
 	}
     }
-    v_vec.Print("application of A", std::cout);
 #if 0
     factor.Apply(u_vec, true);
     double err_inv = RelativeErrorNorm2(v_vec, u_vec);

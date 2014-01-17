@@ -95,6 +95,9 @@ public:
     void set_face(Face face) { face_ = face; }
     Face face() { return face_; }
 
+    bool HasZeroDim() { return ind_data_.redundant_inds().size() == 0
+	    || ind_data_.skeleton_inds().size() == 0; }
+
 private:
     IndexData ind_data_;
     Dense<Scalar> A_22_;        // matrix restricted to interactions
