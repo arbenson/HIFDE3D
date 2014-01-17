@@ -10,7 +10,7 @@ class HIFFactor {
 public:
     // TODO: better constructor and destructor
     HIFFactor(int N, int P, double epsilon):
-    N_(N), P_(P), epsilon_(epsilon), sp_matrix_((N+1) * (N+1) * (N+1), (N+1) * (N+1) * (N+1)) {}
+    N_(N), P_(P), epsilon_(epsilon), sp_matrix_(N * N * N, N * N * N) {}
 
     ~HIFFactor() {}
 
@@ -79,7 +79,7 @@ private:
     void LevelFactorSkel(int cells_per_dir, int level);
 
     // Skeletonize a single face.
-    // 
+    //
     // face (in): which face
     // level_data (in): skeletonization data from this level
     // level (in): which level

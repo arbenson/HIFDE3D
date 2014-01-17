@@ -229,7 +229,6 @@ int HIFFactor<Scalar>::SkeletonizeFace(Face face, std::vector<
     data.set_face(face);
     bool ret = Skeletonize(cell_location, face, level, data);
     if (!ret) {
-        level_data.pop_back();
         return 0;
     }
     curr_pos++;
@@ -957,7 +956,6 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
     }
 }
 
-    
 template <typename Scalar>
 double RelativeErrorNorm2(Vector<Scalar>& x, Vector<Scalar>& y) {
     assert(x.Size() == y.Size());
@@ -972,7 +970,7 @@ double RelativeErrorNorm2(Vector<Scalar>& x, Vector<Scalar>& y) {
     }
     return sqrt(err / norm);
 }
-    
+
 template <typename Scalar>
 void SpMV(Sparse<Scalar>& A, Vector<Scalar>& x, Vector<Scalar>& y) {
     assert(x.Size() == y.Size());
@@ -980,7 +978,7 @@ void SpMV(Sparse<Scalar>& A, Vector<Scalar>& x, Vector<Scalar>& y) {
     for (int i = 0; i < A.Height(); ++i) {
         Vector<Scalar> row;
         Vector<int> inds;
-        A.FindRow(i, row, inds);
+        A.Find(i, inds, row);
         Scalar val = Scalar(0);
         assert(row.Size() == inds.Size());
         for (int j = 0; j < row.Size(); ++j) {
