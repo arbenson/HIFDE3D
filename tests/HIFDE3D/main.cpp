@@ -46,17 +46,23 @@ int main() {
     for (int i = 0; i < v_vec.Size(); ++i) {
 	v_vec.Set(i, 1.0 / (NC * NC * NC));
     }
-    Vector<double> RHS(NC * NC * NC);
-    SpMV(factor.sp_matrix(), v_vec, RHS);
-
-    Vector<double> u_vec(NC * NC * NC);
-    factor.Apply(u_vec, false);
-    double err_apply = RelativeErrorNorm2(RHS, u_vec);
-    std::cout << "Error in application of A: " << err_apply << std::endl;
-
+    factor.Apply(v_vec, false);
+    for (int i = 0; i < NC; ++i) {
+	for (int j = 0; j < NC; ++j) {
+	    for (int k = 0; k < NC; ++k) {
+		Index3 ind(i, j, k);
+		if (i != 0 && j != 0 && k != 0) {
+		    std::cout << v_vec[factor.Tensor2LinearInd(ind)] << std::endl;
+		}
+	    }
+	}
+    }
+    v_vec.Print("application of A", std::cout);
+#if 0
     factor.Apply(u_vec, true);
     double err_inv = RelativeErrorNorm2(v_vec, u_vec);
     std::cout << "Error in application of inverse of A: " << err_inv << std::endl;
+#endif
 
 #ifndef RELEASE
     } //end of try
