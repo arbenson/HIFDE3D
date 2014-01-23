@@ -56,13 +56,13 @@ void HIFFactor<Scalar>::Factor() {
         std::cout << "Starting Schur..." << std::endl;
         LevelFactorSchur(cells_per_dir, level);
         std::cout << "Schur done" << std::endl;
-        UpdateMatrixAndDOFs(level, SCHUR );
+        UpdateMatrixAndDOFs(schur_level_data_[level]);
 
         if (level < num_levels - 1) {
             std::cout << "Starting skel..." << std::endl;
             LevelFactorSkel(cells_per_dir, level);
             std::cout << "Skel done" << std::endl;
-            UpdateMatrixAndDOFs(level, SKEL );
+            UpdateMatrixAndDOFs(skel_level_data_[level]);
         }
     }
 }
@@ -97,21 +97,15 @@ int HIFFactor<Scalar>::Tensor2LinearInd(Index3 ind) {
 }
 
 template <typename Scalar>
-void HIFFactor<Scalar>::UpdateRemainingDOFs(int level, FactorType ftype) {
+void HIFFactor<Scalar>::UpdateRemainingDOFs(std::vector< FactorData<Scalar> >& level_data) {
 #ifndef RELEASE
     CallStackEntry entry("HIFFactor::UpdateRemainingDOFs");
 #endif
     std::vector<int> eliminated_DOFs;
 
-    // Gather the DOFs
-    std::vector< FactorData<Scalar> > *level_data = &schur_level_data_[level];
-    if (ftype == SKEL) {
-        level_data = &skel_level_data_[level];
-    }
-
-    for (size_t i = 0; i < level_data->size(); ++i) {
-        std::vector<int>& red_inds = (*level_data)[i].ind_data().redundant_inds();
-        std::vector<int>& global_inds = (*level_data)[i].ind_data().global_inds();
+    for (size_t i = 0; i < level_data.size(); ++i) {
+        std::vector<int>& red_inds = level_data[i].ind_data().redundant_inds();
+        std::vector<int>& global_inds = level_data[i].ind_data().global_inds();
         for (size_t j = 0; j < red_inds.size(); ++j) {
             eliminated_DOFs.push_back(global_inds[red_inds[j]]);
         }
@@ -267,23 +261,18 @@ void HIFFactor<Scalar>::LevelFactorSkel(int cells_per_dir, int level) {
 }
 
 template <typename Scalar>
-void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, FactorType ftype) {
+void HIFFactor<Scalar>::UpdateMatrixAndDOFs(std::vector< FactorData<Scalar> >& level_data) {
 #ifndef RELEASE
     CallStackEntry entry("HIFFactor::UpdateMatrixAndDOFs");
 #endif
-    std::vector< FactorData<Scalar> > *level_data = &schur_level_data_[level];
-    if (ftype == SKEL) {
-        level_data = &skel_level_data_[level];
-    }
-
     std::map<int, std::pair< Vector<int>, Vector<Scalar> > > vals;
     Vector<int> del_inds;
 
     // TODO: this process of forming iidx, jidx, and vals could be faster.
-    std::cout << "Number of FactorDatas to process: " << level_data->size()
+    std::cout << "Number of FactorDatas to process: " << level_data.size()
               << std::endl;
-    for (size_t n = 0; n < level_data->size(); ++n) {
-        FactorData<Scalar>& data = (*level_data)[n];
+    for (size_t n = 0; n < level_data.size(); ++n) {
+	FactorData<Scalar>& data = level_data[n];
         IndexData& ind_data = data.ind_data();
         std::vector<int>& skel_inds = ind_data.skeleton_inds();
         std::vector<int>& global_inds = ind_data.global_inds();
@@ -319,7 +308,7 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(int level, FactorType ftype) {
      it != vals.end(); ++it) {
         sp_matrix_.Add(it->first, it->second.first, it->second.second);
     }
-    UpdateRemainingDOFs(level, ftype);
+	     UpdateRemainingDOFs(level_data);
 }
 
 template <typename Scalar>
