@@ -46,7 +46,7 @@ public:
     void Find( int i, Vector<int>& jidx, Vector<Scalar>& res );
     void Find( Vector<int>& iidx, int j, Vector<Scalar>& res );
     void FindRow( int i, Vector<Scalar>& res) const;
-    void FindRow( int i, Vector<Scalar>& res, Vector<int>& inds);
+    void FindCol( int j, Vector<Scalar>& res, Vector<int>& inds);
     void FindCol( int j, Vector<Scalar>& res ) const;
 
     void Clear();
@@ -385,6 +385,27 @@ Sparse<Scalar>::FindRow( int i, Vector<Scalar>& vec ) const
         std::map<int, Scalar> &jcol = it->second;
         if( jcol.find(i) != jcol.end() )
             vec.Set(it->first,jcol[i]);
+    }
+}
+
+template<typename Scalar>
+inline void
+Sparse<Scalar>::FindCol( int j, Vector<Scalar>& vec, Vector<int>& inds )
+{
+#ifndef RELEASE
+    CallStackEntry entry("Sparse::FindRow");
+#endif
+#ifndef RELEASE
+    CallStackEntry entry("Sparse::FindCol");
+#endif
+    if( sparsemat_.find(j) != sparsemat_.end() )
+    {
+        std::map<int,Scalar> &jcol = sparsemat_[j];
+        typename std::map<int,Scalar>::iterator it;
+        for( it=jcol.begin(); it!=jcol.end(); ++it ) {
+            inds.PushBack(it->first);
+            vec.PushBack(it->second);
+	}
     }
 }
 
