@@ -137,8 +137,8 @@ private:
     // Face (in): which face
     // level (in): level of the cell location
     // data (out): fills global row and global column indices for skeletonization
-    void InteriorFaceIndexData(Index3 cell_location, Face face, int level,
-                               SkelIndexData& data);
+    void SkelInteractionIndexData(Index3 cell_location, Face face, int level,
+                                  SkelIndexData& data);
 
     // For a given cell location, level, and face, determine the indices of the
     // DOFs interior to the face.
@@ -148,6 +148,16 @@ private:
     // level (in): level of the cell location
     // face_inds (out): adds indices of remaining face DOFs.
     void InteriorFaceDOFs(Index3 cell_location, Face face,
+                          int level, std::vector<int>& face_inds);
+
+    // For a given cell location, level, and face, determine the indices of the
+    // edges interacting with the interior face DOFs.
+    //
+    // cell_location (in): 3-tuple of cell location
+    // Face (in): which face
+    // level (in): level of the cell location
+    // edge_inds (out): adds indices of remaining edge DOFs.
+    void InteriorEdgeDOFs(Index3 cell_location, Face face,
                           int level, std::vector<int>& face_inds);
 
     // Determine whether an index is on the interior of a cell.
@@ -161,6 +171,12 @@ private:
     // level (in): level of the partition
     // ind (in): index
     bool IsFaceInterior(int level, Index3 ind);
+
+    // Determine whether an index is on the interior of an edge.
+    //
+    // level (in): level of the partition
+    // ind (in): index
+    bool IsEdgeInterior(int level, Index3 ind);
 
     // Determine whether an index is on the interior at a given level.
     //

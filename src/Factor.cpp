@@ -164,7 +164,7 @@ bool HIFFactor<Scalar>::Skeletonize(Index3 cell_location, Face face,
     CallStackEntry entry("HIFFactor::Skeletonize");
 #endif
     SkelIndexData skel_data;
-    InteriorFaceIndexData(cell_location, face, level, skel_data);
+    SkelInteractionIndexData(cell_location, face, level, skel_data);
     if (skel_data.global_cols().size() == 0) {
         return false;    // No face here.
     }
@@ -346,6 +346,19 @@ bool HIFFactor<Scalar>::IsFaceInterior(int level, Index3 ind) {
 }
 
 template <typename Scalar>
+bool HIFFactor<Scalar>::IsEdgeInterior(int level, Index3 ind) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::IsFaceInterior");
+#endif
+    int a_int = IsInterior(level, ind(0));
+    int b_int = IsInterior(level, ind(1));
+    int c_int = IsInterior(level, ind(2));
+    return ((a_int && !b_int && !c_int) ||
+            (!a_int && b_int && !c_int) ||
+            (!a_int && !b_int && c_int));
+}
+
+template <typename Scalar>
 bool HIFFactor<Scalar>::IsCellInterior(int level, Index3 ind) {
 #ifndef RELEASE
     CallStackEntry entry("HIFFactor::IsCellInterior");
@@ -521,10 +534,132 @@ void HIFFactor<Scalar>::InteriorFaceDOFs(Index3 cell_location, Face face,
 }
 
 template <typename Scalar>
-void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
+void HIFFactor<Scalar>::InteriorEdgeDOFs(Index3 cell_location, Face face,
+					 int level, std::vector<int>& edge_inds) {
+#ifndef RELEASE
+    CallStackEntry entry("HIFFactor::InteriorEdgeDOFs");
+#endif
+    // TODO: this routine is doing a bunch of redundant computation.  It takes
+    //       code from InteriorFaceDOFs and just checks if it is an edge
+    //       index (instead of a face index).
+    int width = pow2(level) * P_;
+    Index3 inds = cell_location * width;
+    Index3 min_inds = vec3max(width * cell_location, 1);
+    Index3 max_inds = vec3min(width * (cell_location + 1), N_);
+    assert(min_inds <= max_inds);
+    // TODO: abstract away some of the common pieces of code in the switch statement
+    switch (face) {
+    case TOP:
+        {
+            int i = min_inds(0);
+            if (i == 1) {
+                return;  // No top face
+            }
+            for (int j = min_inds(1); j <= max_inds(1); ++j) {
+                for (int k = min_inds(2); k <= max_inds(2); ++k) {
+                    Index3 curr_ind = Index3(i, j, k);
+                    if (IsRemainingDOF(curr_ind) && IsEdgeInterior(level, curr_ind)) {
+                        edge_inds.push_back(Tensor2LinearInd(curr_ind));
+                    }
+                }
+            }
+        }
+        return;
+
+    case BOTTOM:
+        {
+            int i = max_inds(0);
+            if (i == N_) {
+                return;  // No bottom face
+            }
+            for (int j = min_inds(1); j <= max_inds(1); ++j) {
+                for (int k = min_inds(2); k <= max_inds(2); ++k) {
+                    Index3 curr_ind = Index3(i, j, k);
+                    if (IsRemainingDOF(curr_ind) && IsEdgeInterior(level, curr_ind)) {
+                        edge_inds.push_back(Tensor2LinearInd(curr_ind));
+                    }
+                }
+            }
+        }
+        return;
+
+    case LEFT:
+        {
+            int j = min_inds(1);
+            if (j == 1) {
+                return;  // No left face
+            }
+            for (int i = min_inds(0); i <= max_inds(0); ++i) {
+                for (int k = min_inds(2); k <= max_inds(2); ++k) {
+                    Index3 curr_ind = Index3(i, j, k);
+                    if (IsRemainingDOF(curr_ind) && IsEdgeInterior(level, curr_ind)) {
+                        edge_inds.push_back(Tensor2LinearInd(curr_ind));
+                    }
+                }
+            }
+        }
+        return;
+
+    case RIGHT:
+        {
+            int j = max_inds(1);
+            if (j == N_) {
+                return;  // No right face
+            }
+            for (int i = min_inds(0); i <= max_inds(0); ++i) {
+                for (int k = min_inds(2); k <= max_inds(2); ++k) {
+                    Index3 curr_ind = Index3(i, j, k);
+                    if (IsRemainingDOF(curr_ind) && IsEdgeInterior(level, curr_ind)) {
+                        edge_inds.push_back(Tensor2LinearInd(curr_ind));
+                    }
+                }
+            }
+        }
+        return;
+
+    case FRONT:
+        {
+            int k = min_inds(2);
+            if (k == 0) {
+                return;  // No front face
+            }
+            for (int i = min_inds(0); i <= max_inds(0); ++i) {
+                for (int j = min_inds(1); j <= max_inds(1); ++j) {
+                    Index3 curr_ind = Index3(i, j, k);
+                    if (IsRemainingDOF(curr_ind) && IsEdgeInterior(level, curr_ind)) {
+                        edge_inds.push_back(Tensor2LinearInd(curr_ind));
+                    }
+                }
+            }
+        }
+        return;
+
+    case BACK:
+        {
+            int k = max_inds(2);
+            if (k == N_) {
+                return;  // No back face
+            }
+            for (int i = min_inds(0); i <= max_inds(0); ++i) {
+                for (int j = min_inds(1); j <= max_inds(1); ++j) {
+                    Index3 curr_ind = Index3(i, j, k);
+                    if (IsRemainingDOF(curr_ind) && IsEdgeInterior(level, curr_ind)) {
+                        edge_inds.push_back(Tensor2LinearInd(curr_ind));
+                    }
+                }
+            }
+        }
+        return;
+    default:
+	assert(0);  // No face
+    }
+}
+
+template <typename Scalar>
+void HIFFactor<Scalar>::SkelInteractionIndexData(Index3 cell_location, Face face,
                                               int level, SkelIndexData& data) {
 #ifndef RELEASE
-    CallStackEntry entry("HIFFactor::InteriorFaceIndexData");
+    CallStackEntry entry("HIFFactor::SkelInteractionIndexData");
 #endif
     // TODO: When we loop over all cells, there is redundant computation.
     //       Here, we just compute what we need for the given cell.
@@ -559,6 +694,10 @@ void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
         InteriorFaceDOFs(cell_location, RIGHT, level, global_rows);
         InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
         InteriorFaceDOFs(cell_location, BACK, level, global_rows);
+
+	// Get the edges for this face
+	InteriorEdgeDOFs(cell_location, TOP, level, global_rows);
+	
     break;
 
     case LEFT:
@@ -585,6 +724,9 @@ void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
         // RIGHT has already been counted
         InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
         InteriorFaceDOFs(cell_location, BACK, level, global_rows);
+
+	// Get the edges for this face
+	InteriorEdgeDOFs(cell_location, LEFT, level, global_rows);
     break;
 
     case FRONT:
@@ -611,6 +753,9 @@ void HIFFactor<Scalar>::InteriorFaceIndexData(Index3 cell_location, Face face,
         InteriorFaceDOFs(cell_location, RIGHT, level, global_rows);
         InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
         // BACK has already been counted
+
+	// Get the edges for this face
+	InteriorEdgeDOFs(cell_location, FRONT, level, global_rows);
     break;
 
     case BOTTOM:
@@ -967,17 +1112,18 @@ double RelativeErrorNorm2(Vector<Scalar>& x, Vector<Scalar>& y) {
         err += diff * diff;
         norm += std::abs(xi) * std::abs(xi);
     }
+    std::cout << "norm x: " << norm << std::endl;
+    std::cout << "err: " << err << std::endl;
     return sqrt(err / norm);
 }
 
 template <typename Scalar>
 void SpMV(Sparse<Scalar>& A, Vector<Scalar>& x, Vector<Scalar>& y) {
     assert(x.Size() == y.Size());
-    assert(A.Width() == x.Size());
-    for (int i = 0; i < A.Height(); ++i) {
+    for (int i = 0; i < x.Size(); ++i) {
         Vector<Scalar> row;
         Vector<int> inds;
-        A.Find(i, inds, row);
+        A.FindCol(i, row, inds);
         Scalar val = Scalar(0);
         assert(row.Size() == inds.Size());
         for (int j = 0; j < row.Size(); ++j) {
