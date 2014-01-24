@@ -195,9 +195,6 @@ void HIFFactor<Scalar>::LevelFactorSchur(int cells_per_dir, int level) {
                 ++curr_ind;
                 InteriorCellIndexData
                 (Index3(i, j, k), level, factor_data.ind_data());
-                if (level == 0) {
-                    assert(factor_data.NumDOFsEliminated() == 27);
-                }
 
                 // Get local data from the global matrix
                 std::vector<int>& global_inds =
@@ -990,6 +987,21 @@ void ApplyA22(Vector<Scalar>& u, FactorData<Scalar>& data, bool inverse, int lev
 }
 
 template <typename Scalar>
+void HIFFactor<Scalar>::ZeroOutBoundary(Vector<Scalar>& u) {
+    int NC = N_ + 1;
+    for (int i = 0; i < NC; ++i) {
+	for (int j = 0; j < NC; ++j) {
+	    for (int k = 0; k < NC; ++k) {
+		Index3 ind(i, j, k);
+		if (i == 0 || j == 0 || k == 0) {
+		    u.Set(Tensor2LinearInd(ind), Scalar(0));
+		}
+	    }
+	}
+    }
+}
+
+template <typename Scalar>
 void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
 #ifndef RELEASE
     CallStackEntry entry("HIFFactor::Apply");
@@ -998,6 +1010,8 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
     assert(num_levels == static_cast<int>(skel_level_data_.size()));
     std::cout << "Number of levels: " << num_levels << std::endl;
     assert(u.Size() == (N_ + 1) * (N_ + 1) * (N_ + 1));
+    ZeroOutBoundary(u);
+    
 
     Vector<Scalar> u_skel;
     Vector<Scalar> u_red;
@@ -1100,9 +1114,10 @@ double RelativeErrorNorm2(Vector<Scalar>& x, Vector<Scalar>& y) {
         double diff = std::abs(xi - yi);
         err += diff * diff;
         norm += std::abs(xi) * std::abs(xi);
+	// std::cout << xi << " " << yi << " " << diff << " " << std::endl;
     }
-    std::cout << "norm x: " << norm << std::endl;
-    std::cout << "err: " << err << std::endl;
+    // std::cout << "norm x: " << norm << std::endl;
+    // std::cout << "err: " << err << std::endl;
     return sqrt(err / norm);
 }
 

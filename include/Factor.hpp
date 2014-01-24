@@ -59,8 +59,8 @@ public:
 private:
     // Remove eliminated degrees of freedom.
     //
-    // level (in): level at which to remove DOFs
-    void UpdateRemainingDOFs(int level, FactorType ftype);
+    // level_data (in): data from a level for which computation has completed
+    void UpdateRemainingDOFs(std::vector< FactorData<Scalar> >& level_data);
 
     // Eliminate DOFs interior to cells at a given level.
     //
@@ -116,9 +116,8 @@ private:
     // from either an integer level (just Schur complements) or half
     // level (skeletonization).
     //
-    // level (in): the level for which computation has completed and for which
-    //             data will be used for the update
-    void UpdateMatrixAndDOFs(int level, FactorType ftype);
+    // level_data (in): data from a level for which computation has completed
+    void UpdateMatrixAndDOFs(std::vector< FactorData<Scalar> >& level_data);
 
     // For a given cell location at a given level, determine the indices of the
     // DOFs interior to the cell.  These DOFs are eliminated by a Schur
@@ -189,6 +188,9 @@ private:
     // ind (in): 3-tuple index of DOF
     // return value: true if and only if the index corresponds to a remaining DOF
     bool IsRemainingDOF(Index3 ind);
+
+    // Zero out vector elements of u corresponding to the boundary.
+    void ZeroOutBoundary(Vector<Scalar>& u);
 
     // DATA
     int N_;
