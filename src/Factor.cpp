@@ -124,24 +124,32 @@ void HIFFactor<Scalar>::SchurAfterID(FactorData<Scalar>& data) {
     CallStackEntry entry("HIFFactor::SchurAfterID");
 #endif
     std::vector<int>& global_inds = data.ind_data().global_inds();
-    Dense<Scalar> submat;
-    DenseSubmatrix(sp_matrix_, global_inds, global_inds, submat);
 
     // Start with identity
+    // TODO: make this cleaner.
     int size = global_inds.size();
     Dense<Scalar> Rot(size, size, GENERAL);
-    for (int i = 0; i < size; ++i) {
-        Rot.Set(i, i, Scalar(1));
+    for (int j = 0; j < Rot.Width(); ++j) {
+	for (int i = 0; i < Rot.Height(); ++i) {
+	    if (i == j) {
+		Rot.Set(i, j, Scalar(1));
+	    } else {
+		Rot.Set(i, j, Scalar(0));
+	    }
+	}
     }
 
-    // Fill in with W
+    // Fill in with -W
     std::vector<int>& skel_inds = data.ind_data().skeleton_inds();
     std::vector<int>& red_inds = data.ind_data().redundant_inds();
-    for (size_t i = 0; i < skel_inds.size(); ++i) {
-        for (size_t j = 0; j < red_inds.size(); ++j) {
+    for (size_t j = 0; j < red_inds.size(); ++j) {
+	for (size_t i = 0; i < skel_inds.size(); ++i) {
             Rot.Set(skel_inds[i], red_inds[j], -data.W_mat().Get(i, j));
         }
     }
+
+    Dense<Scalar> submat;
+    DenseSubmatrix(sp_matrix_, global_inds, global_inds, submat);
 
     Dense<Scalar> tmp(submat.Height(), Rot.Width(), GENERAL);
     hmat_tools::Multiply(Scalar(1), submat, Rot, tmp);
@@ -279,8 +287,8 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(std::vector< FactorData<Scalar> >& l
 
         for (size_t i = 0; i < skel_inds.size(); ++i) {
             for (size_t j = 0; j < skel_inds.size(); ++j) {
-                assert(skel_inds[i]<global_inds.size());
-                assert(skel_inds[j]<global_inds.size());
+                assert(skel_inds[i] < global_inds.size());
+                assert(skel_inds[j] < global_inds.size());
 
                 vals[global_inds[skel_inds[i]]].first.PushBack
                 (global_inds[skel_inds[j]]);
@@ -291,7 +299,7 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(std::vector< FactorData<Scalar> >& l
         S.Clear();
         std::vector<int>& red_inds = ind_data.redundant_inds();
         for (size_t i = 0; i < red_inds.size(); ++i) {
-                assert(red_inds[i]<global_inds.size());
+	    assert(red_inds[i] < global_inds.size());
             del_inds.PushBack(global_inds[red_inds[i]]);
         }
     }
@@ -1082,9 +1090,9 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
                 // u_skel := -W * u_red + u_skel
                 UpdateSkeleton(u, data, u_skel, u_red, false, true, false);
             } else {
-                // u_skel := X * u_red + u_skel
+                // u_skel := X^H * u_red + u_skel
                 UpdateSkeleton(u, data, u_skel, u_red, true, false, true);
-                // u_red := W * u_skel + u_red
+                // u_red := W^H * u_skel + u_red
                 UpdateRedundant(u, data, u_skel, u_red, true, false, false);
             }
         }
