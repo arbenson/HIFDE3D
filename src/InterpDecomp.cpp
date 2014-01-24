@@ -32,6 +32,13 @@ void InterpDecomp(Dense<Scalar>& M, Dense<Scalar>& W,
 #ifndef RELEASE
     CallStackEntry entry("InterpDecomp");
 #endif
+    Dense<Scalar> check1(M.Height(), M.Width());
+    for (int j = 0; j < M.Width(); ++j) {
+	for (int i = 0; i < M.Height(); ++i) {
+	    check1.Set(i, j, M.Get(i, j));
+	}
+    }
+
     std::vector<int> jpvt;
     PivotedQRWrapper(M, jpvt);
 
@@ -51,35 +58,74 @@ void InterpDecomp(Dense<Scalar>& M, Dense<Scalar>& W,
         }
     }
 
+#if 0
+    if (redundant.size() > 0) {
+	std::cout << M.Height() << " " << M.Width() << std::endl;
+	assert(0);
+	M.Print2("M");
+	for (size_t i = 0; i < redundant.size(); ++i) {
+	    std::cout << redundant[i] << std::endl;
+	}
+    }
+#endif
+
     // Solve for the interpolating factor
     // TODO: Assuming that the diagonal of R is non-increasing, these
     //       formulations can be a bit cleaner.
-    W.Resize(skel.size(), M.Width());
-    for (size_t m = 0; m < skel.size(); ++m) {
-        int i = skel[m];
-        for (int j = 0; j < W.Width(); ++j) {
+    Dense<Scalar> W_full(skel.size(), M.Width());
+    for (int j = 0; j < W_full.Width(); ++j) {
+	for (int i = 0; i < W_full.Height(); ++i) {
             if (j < i) {
-                W.Set(i, j, 0);
+                W_full.Set(i, j, 0);
             } else {
-                W.Set(i, j, M.Get(i, j));
+                W_full.Set(i, j, M.Get(skel[i], j));
             }
         }
     }
 
     Dense<Scalar> R_skel(skel.size(), skel.size(), GENERAL);
-    for (int m = 0; m < R_skel.Height(); ++m) {
-        for (int n = 0; n < R_skel.Width(); ++n) {
-            int i = skel[m];
-            int j = skel[n];
-            if (j < i) {
-                R_skel.Set(i, j, 0);
-            } else {
-                R_skel.Set(i, j, M.Get(i, j));
-            }
+    for (int j = 0; j < R_skel.Width(); ++j) {
+	for (int i = 0; i < R_skel.Height(); ++i) {
+	    R_skel.Set(i, j, W_full.Get(i, j));
         }
     }
 
-    TriangularSolveWrapper(R_skel, W);
+#if 0
+    if (redundant.size() > 0) {
+	W_full.Print2("W_full");
+	R_skel.Print2("R_skel");
+	assert(0);
+    }
+#endif
+    TriangularSolveWrapper(R_skel, W_full);
+    
+    // Permute the columns to form interpolating factor W
+    // TODO: this could be made cleaner by not creating W and W_full
+    DenseSubmatrix(W_full, redundant, W);
+
+#if 0
+    if (redundant.size() > 0) {
+	// Check result
+	Dense<Scalar> check2;
+	DenseSubmatrix(check1, skeleton_cols, check2);
+	Dense<Scalar> check3;
+	DenseSubmatrix(check1, redundant_cols, check3);
+	Dense<Scalar> check4(M.Height(), skeleton_cols.size());
+	
+	// M(:, rd) ~ M(:, sk) * W
+	// check3 ~ check2 * W = check4
+	hmat_tools::Multiply(Scalar(1), check2, W, check4);
+	assert(check3.Height() == check4.Height());
+	assert(check3.Width() == check4.Width());
+	for (int i = 0; i < check3.Height(); ++i) {
+	    for (int j = 0; j < check3.Width(); ++j) {
+		std::cout << "diff: " << check3.Get(i, j) - check4.Get(i, j) << std::endl;
+	    }
+	}
+	//	assert(0);
+    }
+#endif
+
 }
 
 // TODO: Move functions over to lapack.hpp
@@ -155,6 +201,26 @@ void PivotedQRWrapper(Dense<Scalar>& A, std::vector<int>& jpvt) {
     PivotedQRWrapper(m, n, buffer, lda, jpvt, tau);
 }
 
+template <typename Scalar>
+void TriangularSolveWrapper(Dense<Scalar>& R, Dense<Scalar>& B) {
+#ifndef RELEASE
+    CallStackEntry entry("TriangularSolveWrapper");
+#endif
+    // Setup all of the inputs to the lapack call
+    char side = 'l';    // will be ignored
+    char uplo = 'u';    // upper triangular
+    char transa = 'n';  // no transpose
+    char diag = 'n';    // not unit diagonal
+    int m = B.Height();
+    int n = B.Width();
+    Scalar alpha(1.0);  // no multiplier
+    int lda = R.LDim();
+    int ldb = B.LDim();
+    Scalar *A_buf = R.Buffer(0, 0);
+    Scalar *B_buf = B.Buffer(0, 0);
+    TriangularSolve(&side, &uplo, &transa, &diag, &m, &n, &alpha, A_buf, &lda, B_buf, &ldb);
+}
+
 // float
 void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
                      int *n, float *alpha, float *A, int *lda, float *B, int *ldb) {
@@ -212,27 +278,6 @@ void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
     assert(m > 0 && n > 0);
     ztrsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
 }
-
-template <typename Scalar>
-void TriangularSolveWrapper(Dense<Scalar>& R, Dense<Scalar>& B) {
-#ifndef RELEASE
-    CallStackEntry entry("TriangularSolveWrapper");
-#endif
-    // Setup all of the inputs to the lapack call
-    char side = 'l';    // will be ignored
-    char uplo = 'u';    // upper triangular
-    char transa = 'n';  // no transpose
-    char diag = 'n';    // not unit diagonal
-    int m = B.Height();
-    int n = B.Width();
-    Scalar alpha(1.0);  // no multiplier
-    int lda = R.LDim();
-    int ldb = B.LDim();
-    Scalar *A_buf = R.Buffer(0, 0);
-    Scalar *B_buf = B.Buffer(0, 0);
-    TriangularSolve(&side, &uplo, &transa, &diag, &m, &n, &alpha, A_buf, &lda, B_buf, &ldb);
-}
-
 
 // Declarations of possible templated types
 template void InterpDecomp(Dense<float>& M, Dense<float>& W,
