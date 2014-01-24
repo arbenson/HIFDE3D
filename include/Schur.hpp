@@ -24,6 +24,17 @@ void DenseSubmatrix(const Dense<Scalar>& matrix, const std::vector<int>& rows,
     }
 }
 
+template <typename Scalar>
+void DenseSubmatrix(const Dense<Scalar>& matrix, 
+		    const std::vector<int>& cols, Dense<Scalar>& submatrix) {
+    submatrix.Resize(matrix.Height(), cols.size());
+    for (int i = 0; i < matrix.Height(); ++i) {
+        for (size_t j = 0; j < cols.size(); ++j) {
+            submatrix.Set(i, j, matrix.Get(i, cols[j]));
+        }
+    }
+}
+
 // Extract a dense submatrix from a sparse matrix.
 //
 // matrix (in): sparse matrix from which to extract entries
