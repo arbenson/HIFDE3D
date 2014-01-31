@@ -13,7 +13,7 @@ int main() {
 #endif
     int N = 32-1;
     int P = 4;
-    double epsilon = 1e-4;
+    double epsilon = 1e-3;
     HIFFactor<double> factor(N, P, epsilon);
     int NC = factor.N() + 1;
     NumTns<double> A(NC + 1, NC + 1, NC + 1);
@@ -45,56 +45,43 @@ int main() {
     // for (int i = 0; i < v_vec.Size(); ++i) {
     //	v_vec.Set(i, ((double) rand()) / (RAND_MAX+1) / NC / NC);
     // }
-    for (int i = 0; i < v_vec.Size(); ++i) {
-    	v_vec.Set(i, 1.0);
-    }
-
-    Vector<double> w_vec(NC * NC * NC);
-    SpMV(factor.sp_matrix(), v_vec, w_vec);
-#if 0
     for (int i = 0; i < NC; ++i) {
 	for (int j = 0; j < NC; ++j) {
 	    for (int k = 0; k < NC; ++k) {
 		Index3 ind(i, j, k);
 		if (i != 0 && j != 0 && k != 0) {
-		    std::cout << w_vec[factor.Tensor2LinearInd(ind)] << std::endl;
+		    v_vec.Set(factor.Tensor2LinearInd(ind), 1.0);
+		} else {
+		    v_vec.Set(factor.Tensor2LinearInd(ind), 0.0);
 		}
 	    }
 	}
     }
-#endif
+
+    Vector<double> w_vec(NC * NC * NC);
+    // w <- Av
+    SpMV(factor.sp_matrix(), v_vec, w_vec);
 
     factor.Initialize();
     std::cout << "factoring..." << std::endl;
     factor.Factor();
     std::cout << "factoring done" << std::endl;
 
+    // u <- v
     Vector<double> u_vec(v_vec.Size());
     for (int i = 0; i < u_vec.Size(); ++i) {
 	u_vec.Set(i, v_vec.Get(i));
     }
+    // u <- Fu
     factor.Apply(u_vec, false);
-    double err_app = RelativeErrorNorm2(u_vec, w_vec);
-    std::cout << "Error in application of A: " << err_app << std::endl;
+    // ||w - u|| / ||w|| = ||Av - Fv|| // ||Av||
+    double err_app = RelativeErrorNorm2(w_vec, u_vec);
+    std::cout << "Relative error in application of A (e_a): " << err_app << std::endl;
 
-#if 0
+    // w <- F^{-1}w = F^{-1}Av
     factor.Apply(w_vec, true);
     double err_inv = RelativeErrorNorm2(v_vec, w_vec);
-    std::cout << "Error in application of inverse of A: " << err_inv << std::endl;
-    for (int i = 0; i < NC; ++i) {
-	for (int j = 0; j < NC; ++j) {
-	    for (int k = 0; k < NC; ++k) {
-		Index3 ind(i, j, k);
-		if (i != 0 && j != 0 && k != 0) {
-		    std::cout << w_vec[factor.Tensor2LinearInd(ind)] << std::endl;
-		}
-	    }
-	}
-    }
-#endif
-
-
-
+    std::cout << "Error in application of inverse of A (e_s): " << err_inv << std::endl;
 
 #ifndef RELEASE
     } //end of try
@@ -115,4 +102,3 @@ int main() {
 #endif
     return 0;
 }
-
