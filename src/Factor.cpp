@@ -124,11 +124,14 @@ void HIFFactor<Scalar>::SchurAfterID(FactorData<Scalar>& data) {
     CallStackEntry entry("HIFFactor::SchurAfterID");
 #endif
     std::vector<int>& global_inds = data.ind_data().global_inds();
+    std::vector<int>& skel_inds = data.ind_data().skeleton_inds();
+    std::vector<int>& red_inds = data.ind_data().redundant_inds();
 
     // Start with identity
     // TODO: make this cleaner.
     int size = global_inds.size();
-    Dense<Scalar> Rot(size, size, GENERAL);
+    assert(global_inds.size() == skel_inds.size() + red_inds.size());
+    Dense<Scalar> Rot(size, size);
     for (int j = 0; j < Rot.Width(); ++j) {
 	for (int i = 0; i < Rot.Height(); ++i) {
 	    if (i == j) {
@@ -140,8 +143,6 @@ void HIFFactor<Scalar>::SchurAfterID(FactorData<Scalar>& data) {
     }
 
     // Fill in with -W
-    std::vector<int>& skel_inds = data.ind_data().skeleton_inds();
-    std::vector<int>& red_inds = data.ind_data().redundant_inds();
     for (size_t j = 0; j < red_inds.size(); ++j) {
 	for (size_t i = 0; i < skel_inds.size(); ++i) {
             Rot.Set(skel_inds[i], red_inds[j], -data.W_mat().Get(i, j));
@@ -151,10 +152,10 @@ void HIFFactor<Scalar>::SchurAfterID(FactorData<Scalar>& data) {
     Dense<Scalar> submat;
     DenseSubmatrix(sp_matrix_, global_inds, global_inds, submat);
 
-    Dense<Scalar> tmp(submat.Height(), Rot.Width(), GENERAL);
+    Dense<Scalar> tmp(submat.Height(), Rot.Width());
     hmat_tools::Multiply(Scalar(1), submat, Rot, tmp);
 
-    Dense<Scalar> result(Rot.Height(), tmp.Width(), GENERAL);
+    Dense<Scalar> result(Rot.Height(), tmp.Width());
     hmat_tools::AdjointMultiply(Scalar(1), Rot, tmp, result);
     Schur(result, data);
 }
@@ -183,6 +184,7 @@ bool HIFFactor<Scalar>::Skeletonize(Index3 cell_location, Face face,
     }
     InterpDecomp(submat, data.W_mat(), data.ind_data().skeleton_inds(),
                  data.ind_data().redundant_inds(), epsilon_);
+    // if (data.ind_data().redundant_inds().size() > 0)
     SchurAfterID(data);
     return true;
 }
@@ -310,10 +312,10 @@ void HIFFactor<Scalar>::UpdateMatrixAndDOFs(std::vector< FactorData<Scalar> >& l
     sp_matrix_.DeleteCol(del_inds);
     std::cout << "updating matrix..." << std::endl;
     for (typename std::map<int, std::pair< Vector<int>, Vector<Scalar> > >::iterator it = vals.begin();
-     it != vals.end(); ++it) {
+	 it != vals.end(); ++it) {
         sp_matrix_.Add(it->first, it->second.first, it->second.second);
     }
-	     UpdateRemainingDOFs(level_data);
+    UpdateRemainingDOFs(level_data);
 }
 
 template <typename Scalar>
@@ -670,6 +672,8 @@ void HIFFactor<Scalar>::SkelInteractionIndexData(Index3 cell_location, Face face
         }
         // Columns correspond to the face we are dealing with
         InteriorFaceDOFs(cell_location, TOP, level, global_cols);
+	// Get the edges for this face
+	InteriorEdgeDOFs(cell_location, TOP, level, global_rows);
 
         // Rows are all possible neighbors of interior DOFs
         // First, all interior faces for current box, except TOP
@@ -689,9 +693,6 @@ void HIFFactor<Scalar>::SkelInteractionIndexData(Index3 cell_location, Face face
         InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
         InteriorFaceDOFs(cell_location, BACK, level, global_rows);
 
-	// Get the edges for this face
-	InteriorEdgeDOFs(cell_location, TOP, level, global_rows);
-	
     break;
 
     case LEFT:
@@ -700,6 +701,8 @@ void HIFFactor<Scalar>::SkelInteractionIndexData(Index3 cell_location, Face face
         }
         // Columns correspond to the face we are dealing with
         InteriorFaceDOFs(cell_location, LEFT, level, global_cols);
+	// Get the edges for this face
+	InteriorEdgeDOFs(cell_location, LEFT, level, global_rows);
 
         // Rows are all possible neighbors of interior DOFs
         // First, all interior faces for current box
@@ -719,8 +722,6 @@ void HIFFactor<Scalar>::SkelInteractionIndexData(Index3 cell_location, Face face
         InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
         InteriorFaceDOFs(cell_location, BACK, level, global_rows);
 
-	// Get the edges for this face
-	InteriorEdgeDOFs(cell_location, LEFT, level, global_rows);
     break;
 
     case FRONT:
@@ -729,6 +730,8 @@ void HIFFactor<Scalar>::SkelInteractionIndexData(Index3 cell_location, Face face
         }
         // Columns correspond to the face we are dealing with
         InteriorFaceDOFs(cell_location, FRONT, level, global_cols);
+	// Get the edges for this face
+	InteriorEdgeDOFs(cell_location, FRONT, level, global_rows);
 
         // Rows are all possible neighbors of interior DOFs
         // First, all interior faces for current box
@@ -748,8 +751,6 @@ void HIFFactor<Scalar>::SkelInteractionIndexData(Index3 cell_location, Face face
         InteriorFaceDOFs(cell_location, FRONT, level, global_rows);
         // BACK has already been counted
 
-	// Get the edges for this face
-	InteriorEdgeDOFs(cell_location, FRONT, level, global_rows);
     break;
 
     case BOTTOM:
@@ -884,8 +885,6 @@ void CopyRedundantVector(Vector<Scalar>& u, FactorData<Scalar>& data,
 //
 // op(A) is either A or A^H, dictated by the input 'adjoint'
 // alpha is plus or minus 1, dictated by the input 'negative'.
-// A is either data.W_mat() (default) or data.X_mat() (dictated by the input
-// 'is_X' set to True)
 // This function updates the entries of u at the skeleton points.
 //
 // u (in): vector or right-hand-side
@@ -895,13 +894,13 @@ void CopyRedundantVector(Vector<Scalar>& u, FactorData<Scalar>& data,
 //              could correspond to the interior of faces in the Schur
 //              factorization _or_ the skeleton points in skeletonization.
 // u_red (in): u at the redundant points, i.e., the DOFs being eliminated.
+// A (in): matrix to use for the update.
 // adjoint (in): if true, op(A) = A^H; otherwise, op(A) = A
 // negative (in): if true, alpha = -1; otherwise, alpha = 1
-// is_X (in): if true, A = data.X_mat(); otherwise, A = data.W_mat()
 template <typename Scalar>
 void UpdateSkeleton(Vector<Scalar>& u, FactorData<Scalar>& data,
                     Vector<Scalar>& u_skel, Vector<Scalar>& u_red,
-                    bool adjoint, bool negative, bool is_X) {
+                    Dense<Scalar>& A, bool adjoint, bool negative) {
 #ifndef RELEASE
     CallStackEntry entry("UpdateSkeleton");
 #endif
@@ -911,10 +910,6 @@ void UpdateSkeleton(Vector<Scalar>& u, FactorData<Scalar>& data,
     Scalar alpha = Scalar(1.0);
     if (negative) {
         alpha = Scalar(-1.0);
-    }
-    Dense<Scalar>& A = data.W_mat();
-    if (is_X) {
-        A = data.X_mat();
     }
     if (adjoint) {
         hmat_tools::AdjointMultiply(alpha, A, u_red, Scalar(1.0), u_skel);
@@ -928,8 +923,7 @@ void UpdateSkeleton(Vector<Scalar>& u, FactorData<Scalar>& data,
 //
 // op(A) is either A or A^H, dictated by the input 'adjoint'
 // alpha is plus or minus 1, dictated by the input 'negative'.
-// A is either data.W_mat() (default) or data.X_mat() (dictated by the input
-// 'is_X' set to True)
+// A is either data.W_mat() (default) or data.X_mat()
 // This function updates the entries of u at the redundant points.
 //
 // u (in): vector or right-hand-side
@@ -939,27 +933,22 @@ void UpdateSkeleton(Vector<Scalar>& u, FactorData<Scalar>& data,
 //              could correspond to the interior of faces in the Schur
 //              factorization _or_ the skeleton points in skeletonization.
 // u_red (in): u at the redundant points, i.e., the DOFs being eliminated.
+// A (in): matrix to use for the update.
 // adjoint (in): if true, op(A) = A^H; otherwise, op(A) = A
 // negative (in): if true, alpha = -1; otherwise, alpha = 1
-// is_X (in): if true, A = data.X_mat(); otherwise, A = data.W_mat()
 template <typename Scalar>
 void UpdateRedundant(Vector<Scalar>& u, FactorData<Scalar>& data,
                      Vector<Scalar>& u_skel, Vector<Scalar>& u_red,
-                     bool adjoint, bool negative, bool is_X) {
+                     Dense<Scalar>& A, bool adjoint, bool negative) {
 #ifndef RELEASE
     CallStackEntry entry("UpdateRedundant");
 #endif
     if (u_skel.Size() == 0 || u_red.Size() == 0) {
 	return;  // nothing to do
     }
-
     Scalar alpha = Scalar(1.0);
     if (negative) {
         alpha = Scalar(-1.0);
-    }
-    Dense<Scalar>& A = data.W_mat();
-    if (is_X) {
-        A = data.X_mat();
     }
     if (adjoint) {
         hmat_tools::AdjointMultiply(alpha, A, u_skel, Scalar(1.0), u_red);
@@ -1035,10 +1024,10 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
             GetRedundantVector(u, data, u_red);
             if (apply_inverse) {
                 // u_skel := - X^H * u_red + u_skel
-                UpdateSkeleton(u, data, u_skel, u_red, true, true, true);
+                UpdateSkeleton(u, data, u_skel, u_red, data.X_mat(), true, true);
             } else {
                 // u_red := X * u_skel + u_red
-                UpdateRedundant(u, data, u_skel, u_red, false, false, true);
+                UpdateRedundant(u, data, u_skel, u_red, data.X_mat(), false, false);
             }
         }
 	std::cout << "Skeleton" << std::endl;
@@ -1048,14 +1037,14 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
             GetRedundantVector(u, data, u_red);
             if (apply_inverse) {
                 // u_red := -W^H * u_skel + u_red
-                UpdateRedundant(u, data, u_skel, u_red, true, true, false);
+                UpdateRedundant(u, data, u_skel, u_red, data.W_mat(), true, true);
                 // u_skel := -X^H * u_red + u_skel
-                UpdateSkeleton(u, data, u_skel, u_red, true, true, true);
+                UpdateSkeleton(u, data, u_skel, u_red, data.X_mat(), true, true);
             } else {
                 // u_skel := W * u_red + u_skel
-                UpdateSkeleton(u, data, u_skel, u_red, false, false, false);
+                UpdateSkeleton(u, data, u_skel, u_red, data.W_mat(), false, false);
                 // u_red := X * u_skel + u_red
-                UpdateRedundant(u, data, u_skel, u_red, false, false, true);
+                UpdateRedundant(u, data, u_skel, u_red, data.X_mat(), false, false);
             }
         }
     }
@@ -1086,14 +1075,14 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
             GetRedundantVector(u, data, u_red);
             if (apply_inverse) {
                 // u_red := -X * u_skel + u_red
-                UpdateRedundant(u, data, u_skel, u_red, false, true, true);
+                UpdateRedundant(u, data, u_skel, u_red, data.X_mat(), false, true);
                 // u_skel := -W * u_red + u_skel
-                UpdateSkeleton(u, data, u_skel, u_red, false, true, false);
+                UpdateSkeleton(u, data, u_skel, u_red, data.W_mat(), false, true);
             } else {
                 // u_skel := X^H * u_red + u_skel
-                UpdateSkeleton(u, data, u_skel, u_red, true, false, true);
+                UpdateSkeleton(u, data, u_skel, u_red, data.X_mat(), true, false);
                 // u_red := W^H * u_skel + u_red
-                UpdateRedundant(u, data, u_skel, u_red, true, false, false);
+                UpdateRedundant(u, data, u_skel, u_red, data.W_mat(), true, false);
             }
         }
         for (size_t j = 0; j < schur_level_data_[level].size(); ++j) {
@@ -1102,15 +1091,16 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
             GetRedundantVector(u, data, u_red);
             if (apply_inverse) {
                 // u_red := -X * u_skel + u_red
-                UpdateRedundant(u, data, u_skel, u_red, false, true, false);
+                UpdateRedundant(u, data, u_skel, u_red, data.X_mat(), false, true);
             } else {
                 // u_skel := X * u_red + u_skel
-                UpdateSkeleton(u, data, u_skel, u_red, true, false, true);
+                UpdateSkeleton(u, data, u_skel, u_red, data.X_mat(), true, false);
             }
         }
     }
 }
 
+// ||x - y||_2 / || x ||_2
 template <typename Scalar>
 double RelativeErrorNorm2(Vector<Scalar>& x, Vector<Scalar>& y) {
     assert(x.Size() == y.Size());
@@ -1122,10 +1112,7 @@ double RelativeErrorNorm2(Vector<Scalar>& x, Vector<Scalar>& y) {
         double diff = std::abs(xi - yi);
         err += diff * diff;
         norm += std::abs(xi) * std::abs(xi);
-	// std::cout << xi << " " << yi << " " << diff << " " << std::endl;
     }
-    // std::cout << "norm x: " << norm << std::endl;
-    // std::cout << "err: " << err << std::endl;
     return sqrt(err / norm);
 }
 
@@ -1144,8 +1131,6 @@ void SpMV(Sparse<Scalar>& A, Vector<Scalar>& x, Vector<Scalar>& y) {
         y.Set(i, val);
     }
 }
-
-
 
 // Declarations
 template class HIFFactor<float>;
