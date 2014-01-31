@@ -32,13 +32,6 @@ void InterpDecomp(Dense<Scalar>& M, Dense<Scalar>& W,
 #ifndef RELEASE
     CallStackEntry entry("InterpDecomp");
 #endif
-    Dense<Scalar> check1(M.Height(), M.Width());
-    for (int j = 0; j < M.Width(); ++j) {
-	for (int i = 0; i < M.Height(); ++i) {
-	    check1.Set(i, j, M.Get(i, j));
-	}
-    }
-
     std::vector<int> jpvt;
     PivotedQRWrapper(M, jpvt);
 
@@ -57,17 +50,6 @@ void InterpDecomp(Dense<Scalar>& M, Dense<Scalar>& W,
             redundant.push_back(i);
         }
     }
-
-#if 0
-    if (redundant.size() > 0) {
-	std::cout << M.Height() << " " << M.Width() << std::endl;
-	assert(0);
-	M.Print2("M");
-	for (size_t i = 0; i < redundant.size(); ++i) {
-	    std::cout << redundant[i] << std::endl;
-	}
-    }
-#endif
 
     // Solve for the interpolating factor
     // TODO: Assuming that the diagonal of R is non-increasing, these
@@ -90,42 +72,11 @@ void InterpDecomp(Dense<Scalar>& M, Dense<Scalar>& W,
         }
     }
 
-#if 0
-    if (redundant.size() > 0) {
-	W_full.Print2("W_full");
-	R_skel.Print2("R_skel");
-	assert(0);
-    }
-#endif
     TriangularSolveWrapper(R_skel, W_full);
     
     // Permute the columns to form interpolating factor W
     // TODO: this could be made cleaner by not creating W and W_full
     DenseSubmatrix(W_full, redundant, W);
-
-#if 0
-    if (redundant.size() > 0) {
-	// Check result
-	Dense<Scalar> check2;
-	DenseSubmatrix(check1, skeleton_cols, check2);
-	Dense<Scalar> check3;
-	DenseSubmatrix(check1, redundant_cols, check3);
-	Dense<Scalar> check4(M.Height(), skeleton_cols.size());
-	
-	// M(:, rd) ~ M(:, sk) * W
-	// check3 ~ check2 * W = check4
-	hmat_tools::Multiply(Scalar(1), check2, W, check4);
-	assert(check3.Height() == check4.Height());
-	assert(check3.Width() == check4.Width());
-	for (int i = 0; i < check3.Height(); ++i) {
-	    for (int j = 0; j < check3.Width(); ++j) {
-		std::cout << "diff: " << check3.Get(i, j) - check4.Get(i, j) << std::endl;
-	    }
-	}
-	//	assert(0);
-    }
-#endif
-
 }
 
 // TODO: Move functions over to lapack.hpp
@@ -152,7 +103,7 @@ void PivotedQRWrapper(int m, int n, double *A, int lda, std::vector<int>& jpvt,
     int lwork = 2 * n + (n + 1) * BLOCKSIZE;
     std::vector<double> work(lwork);
     lapack::PivotedQR(m, n, A, lda, &jpvt[0], &tau[0], &work[0], lwork);
-    for( size_t i=0; i<jpvt.size(); ++i )
+    for (size_t i = 0; i < jpvt.size(); ++i)
         jpvt[i]--;
 }
 
@@ -167,7 +118,7 @@ void PivotedQRWrapper(int m, int n, std::complex<float> *A, int lda,
     std::vector< std::complex<float> > work(lwork);
     std::vector<float> rwork(lapack::PivotedQRRealWorkSize(n));
     lapack::PivotedQR(m, n, A, lda, &jpvt[0], &tau[0], &work[0], lwork, &rwork[0]);
-    for( size_t i=0; i<jpvt.size(); ++i )
+    for (size_t i = 0; i < jpvt.size(); ++i)
         jpvt[i]--;
 }
 
