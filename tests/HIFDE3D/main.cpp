@@ -64,8 +64,12 @@ int main() {
 
     factor.Initialize();
     std::cout << "factoring..." << std::endl;
+    srand48(time(NULL));
+    time_t t0, t1;
+    t0 = time(0);
     factor.Factor();
-    std::cout << "factoring done" << std::endl;
+    t1 = time(0);
+    std::cout << "factoring done (" << difftime(t1, t0) << " seconds)" << std::endl;
 
     // u <- v
     Vector<double> u_vec(v_vec.Size());
@@ -73,13 +77,19 @@ int main() {
 	u_vec.Set(i, v_vec.Get(i));
     }
     // u <- Fu
+    t0 = time(0);
     factor.Apply(u_vec, false);
+    t1 = time(0);
+    std::cout << "application done (" << difftime(t1, t0) << " seconds)" << std::endl;
     // ||w - u|| / ||w|| = ||Av - Fv|| // ||Av||
     double err_app = RelativeErrorNorm2(w_vec, u_vec);
     std::cout << "Relative error in application of A (e_a): " << err_app << std::endl;
 
     // w <- F^{-1}w = F^{-1}Av
+    t0 = time(0);
     factor.Apply(w_vec, true);
+    t1 = time(0);
+    std::cout << "inverse application done (" << difftime(t1, t0) << " seconds)" << std::endl;
     double err_inv = RelativeErrorNorm2(v_vec, w_vec);
     std::cout << "Error in application of inverse of A (e_s): " << err_inv << std::endl;
 
