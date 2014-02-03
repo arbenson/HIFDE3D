@@ -45,23 +45,18 @@ void HIFFactor<Scalar>::Factor() {
 #endif
     int NC = N_ + 1;
     int num_levels = static_cast<int>(round(log2(NC / P_))) + 1;
-    std::cout << "Total Levels: " << num_levels << std::endl;
+    std::cout << "Total number of levels: " << num_levels << std::endl;
 
     for (int level = 0; level < num_levels; ++level) {
         //TODO: if the number on each side is not power of 2, bug in width.
         int width = pow2(level) * P_;
         int cells_per_dir = NC / width;
 
-        std::cout << "level " << level << std::endl;
-        std::cout << "Starting Schur..." << std::endl;
         LevelFactorSchur(cells_per_dir, level);
-        std::cout << "Schur done" << std::endl;
         UpdateMatrixAndDOFs(schur_level_data_[level]);
 
         if (level < num_levels - 1) {
-            std::cout << "Starting skel..." << std::endl;
             LevelFactorSkel(cells_per_dir, level);
-            std::cout << "Skel done" << std::endl;
             UpdateMatrixAndDOFs(skel_level_data_[level]);
         }
     }
@@ -89,9 +84,6 @@ int HIFFactor<Scalar>::Tensor2LinearInd(Index3 ind) {
     int j = ind(1);
     int k = ind(2);
     int NC = N_ + 1;
-    if (!(0 <= i && i <= N_ && 0 <= j && j <= N_ && 0 <= k && k <= N_)) {
-    std::cout << i << " " << j << " " << k << std::endl;
-    }
     assert(0 <= i && i <= N_ && 0 <= j && j <= N_ && 0 <= k && k <= N_);
     return i + NC * j + (NC * NC) * k;
 }
@@ -397,7 +389,6 @@ void HIFFactor<Scalar>::InteriorCellIndexData(Index3 cell_location, int level,
             }
         }
     }
-    //std::cout << skel_inds.size() << std::endl;
 }
 
 template <typename Scalar>
@@ -1008,16 +999,11 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
     std::cout << "Number of levels: " << num_levels << std::endl;
     assert(u.Size() == (N_ + 1) * (N_ + 1) * (N_ + 1));
     ZeroOutBoundary(u);
-    
 
     Vector<Scalar> u_skel;
     Vector<Scalar> u_red;
 
-    std::cout << "First pass..." << std::endl;
-
     for (int level = 0; level < num_levels - 1; ++level) {
-	std::cout << "Applying at level " << level << std::endl;
-	std::cout << "Schur" << std::endl;
         for (size_t j = 0; j < schur_level_data_[level].size(); ++j) {
             FactorData<Scalar>& data = schur_level_data_[level][j];
             GetSkeletonVector(u, data, u_skel);
@@ -1030,7 +1016,6 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
                 UpdateRedundant(u, data, u_skel, u_red, data.X_mat(), false, false);
             }
         }
-	std::cout << "Skeleton" << std::endl;
         for (size_t j = 0; j < skel_level_data_[level].size(); ++j) {
             FactorData<Scalar>& data = skel_level_data_[level][j];
             GetSkeletonVector(u, data, u_skel);
@@ -1049,9 +1034,6 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
         }
     }
 
-    std::cout << "Applying inverses..." << std::endl;
-    std::cout << schur_level_data_[0].size() << std::endl;
-
     for (int level = 0; level < num_levels; ++level) {
 	std::cout << "Applying at level " << level << std::endl;
         for (size_t j = 0; j < schur_level_data_[level].size(); ++j) {
@@ -1065,8 +1047,6 @@ void HIFFactor<Scalar>::Apply(Vector<Scalar>& u, bool apply_inverse) {
             ApplyA22(u, data, apply_inverse, level);
         }
     }
-
-    std::cout << "Second pass..." << std::endl;
 
     for (int level = num_levels - 2; level >= 0; --level) {
         for (size_t j = 0; j < skel_level_data_[level].size(); ++j) {
@@ -1140,11 +1120,17 @@ template class HIFFactor< std::complex<double> >;
 
 template double RelativeErrorNorm2(Vector<float>& x, Vector<float>& y);
 template double RelativeErrorNorm2(Vector<double>& x, Vector<double>& y);
-template double RelativeErrorNorm2(Vector< std::complex<float> >& x, Vector< std::complex<float> >& y);
-template double RelativeErrorNorm2(Vector< std::complex<double> >& x, Vector< std::complex<double> >& y);
+template double RelativeErrorNorm2(Vector< std::complex<float> >& x,
+				   Vector< std::complex<float> >& y);
+template double RelativeErrorNorm2(Vector< std::complex<double> >& x,
+				   Vector< std::complex<double> >& y);
 
 template void SpMV(Sparse<float>& A, Vector<float>& x, Vector<float>& y);
 template void SpMV(Sparse<double>& A, Vector<double>& x, Vector<double>& y);
-template void SpMV(Sparse< std::complex<float> >& A, Vector< std::complex<float> >& x, Vector< std::complex<float> >& y);
-template void SpMV(Sparse< std::complex<double> >& A, Vector< std::complex<double> >& x, Vector< std::complex<double> >& y);
+template void SpMV(Sparse< std::complex<float> >& A,
+		   Vector< std::complex<float> >& x,
+		   Vector< std::complex<float> >& y);
+template void SpMV(Sparse< std::complex<double> >& A,
+		   Vector< std::complex<double> >& x,
+		   Vector< std::complex<double> >& y);
 }
