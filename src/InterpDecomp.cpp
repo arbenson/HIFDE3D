@@ -17,6 +17,64 @@ extern "C" {
                 std::complex<double> *B, int *ldb);
 }
 
+// float
+void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
+                     int *n, float *alpha, float *A, int *lda, float *B, int *ldb) {
+#ifndef RELEASE
+    CallStackEntry entry("TriangularSolve");
+    if (m <= 0)
+	throw std::logic_error("Invalid matrix height for triangular solve");
+    if (n <= 0)
+	throw std::logic_error("Invalid matrix width for triangular solve");
+#endif
+    assert(m > 0 && n > 0);
+    strsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
+}
+
+// double
+void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
+                     int *n, double *alpha, double *A, int *lda, double *B, int *ldb) {
+#ifndef RELEASE
+    CallStackEntry entry("TriangularSolve");
+    if (m <= 0)
+	throw std::logic_error("Invalid matrix height for triangular solve");
+    if (n <= 0)
+	throw std::logic_error("Invalid matrix width for triangular solve");
+#endif
+    assert(m > 0 && n > 0);
+    dtrsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
+}
+
+// complex float
+void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
+                     int *n, std::complex<float> *alpha, std::complex<float> *A,
+                     int *lda, std::complex<float> *B, int *ldb) {
+#ifndef RELEASE
+    CallStackEntry entry("TriangularSolve");
+    if (m <= 0)
+	throw std::logic_error("Invalid matrix height for triangular solve");
+    if (n <= 0)
+	throw std::logic_error("Invalid matrix width for triangular solve");
+#endif
+    assert(m > 0 && n > 0);
+    ctrsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
+}
+
+// complex double
+void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
+                     int *n, std::complex<double> *alpha, std::complex<double> *A,
+                     int *lda, std::complex<double> *B, int *ldb) {
+#ifndef RELEASE
+    CallStackEntry entry("TriangularSolve");
+    if (m <= 0)
+	throw std::logic_error("Invalid matrix height for triangular solve");
+    if (n <= 0)
+	throw std::logic_error("Invalid matrix width for triangular solve");
+#endif
+    assert(m > 0 && n > 0);
+    ztrsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
+}
+
 template <typename Scalar>
 bool IsSkel(Dense<Scalar>& R, int row, double tol) {
 #ifndef RELEASE
@@ -170,64 +228,6 @@ void TriangularSolveWrapper(Dense<Scalar>& R, Dense<Scalar>& B) {
     Scalar *A_buf = R.Buffer(0, 0);
     Scalar *B_buf = B.Buffer(0, 0);
     TriangularSolve(&side, &uplo, &transa, &diag, &m, &n, &alpha, A_buf, &lda, B_buf, &ldb);
-}
-
-// float
-void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
-                     int *n, float *alpha, float *A, int *lda, float *B, int *ldb) {
-#ifndef RELEASE
-    CallStackEntry entry("TriangularSolve");
-    if (m <= 0)
-	throw std::logic_error("Invalid matrix height for triangular solve");
-    if (n <= 0)
-	throw std::logic_error("Invalid matrix width for triangular solve");
-#endif
-    assert(m > 0 && n > 0);
-    strsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
-}
-
-// double
-void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
-                     int *n, double *alpha, double *A, int *lda, double *B, int *ldb) {
-#ifndef RELEASE
-    CallStackEntry entry("TriangularSolve");
-    if (m <= 0)
-	throw std::logic_error("Invalid matrix height for triangular solve");
-    if (n <= 0)
-	throw std::logic_error("Invalid matrix width for triangular solve");
-#endif
-    assert(m > 0 && n > 0);
-    dtrsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
-}
-
-// complex float
-void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
-                     int *n, std::complex<float> *alpha, std::complex<float> *A,
-                     int *lda, std::complex<float> *B, int *ldb) {
-#ifndef RELEASE
-    CallStackEntry entry("TriangularSolve");
-    if (m <= 0)
-	throw std::logic_error("Invalid matrix height for triangular solve");
-    if (n <= 0)
-	throw std::logic_error("Invalid matrix width for triangular solve");
-#endif
-    assert(m > 0 && n > 0);
-    ctrsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
-}
-
-// complex double
-void TriangularSolve(char *side, char *uplo, char *transa, char *diag, int *m,
-                     int *n, std::complex<double> *alpha, std::complex<double> *A,
-                     int *lda, std::complex<double> *B, int *ldb) {
-#ifndef RELEASE
-    CallStackEntry entry("TriangularSolve");
-    if (m <= 0)
-	throw std::logic_error("Invalid matrix height for triangular solve");
-    if (n <= 0)
-	throw std::logic_error("Invalid matrix width for triangular solve");
-#endif
-    assert(m > 0 && n > 0);
-    ztrsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
 }
 
 // Declarations of possible templated types
