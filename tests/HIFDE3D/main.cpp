@@ -5,15 +5,42 @@
 
 using namespace hifde3d;
 
-int main() {
+int OptionsCreate(int argc, char** argv,
+		  std::map<std::string, std::string>& options) {
+    options.clear();
+    for(int k = 1; k < argc; k = k + 2) {
+      options[ std::string(argv[k]) ] = std::string(argv[k+1]);
+    }
+    return 0;
+}
+
+std::string FindOption(std::map<std::string, std::string>& opts,
+                  std::string option) {
+    std::map<std::string, std::string>::iterator mi = opts.find(option);
+    if (mi == opts.end()) {
+	std::cerr << "Missing option " << option << std::endl;
+        return "";
+    }
+    return mi->second;
+}
+
+int main(int argc, char** argv) {
 #ifndef RELEASE
     // When not in release mode, we catch all errors so that we can print the
     // manual call stack.
     try {
 #endif
+    std::map<std::string, std::string> opts;
+    OptionsCreate(argc, argv, opts);
+    double epsilon = 1e-3;
+    std::string opt = FindOption(opts, "-tol");
+    if (!opt.empty()) {
+	epsilon = atof(opt.c_str());
+    }
+    std::cout << "Tolerance is: " << epsilon << std::endl;
+    
     int N = 32-1;
     int P = 4;
-    double epsilon = 1e-3;
     HIFFactor<double> factor(N, P, epsilon);
     int NC = factor.N() + 1;
     NumTns<double> A(NC + 1, NC + 1, NC + 1);
