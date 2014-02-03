@@ -32,15 +32,28 @@ int main(int argc, char** argv) {
 #endif
     std::map<std::string, std::string> opts;
     OptionsCreate(argc, argv, opts);
+
+    // Default tolerance 1e-3
     double epsilon = 1e-3;
     std::string opt = FindOption(opts, "-tol");
     if (!opt.empty()) {
 	epsilon = atof(opt.c_str());
     }
     std::cout << "Tolerance is: " << epsilon << std::endl;
-    
-    int N = 32-1;
+
+    // Default 
+    int N = 31;
+    opt = FindOption(opts, "-N");
+    if (!opt.empty()) {
+	N = atoi(opt.c_str());
+    }
+
     int P = 4;
+    opt = FindOption(opts, "-P");
+    if (!opt.empty()) {
+	P = atoi(opt.c_str());
+    }
+
     HIFFactor<double> factor(N, P, epsilon);
     int NC = factor.N() + 1;
     NumTns<double> A(NC + 1, NC + 1, NC + 1);
