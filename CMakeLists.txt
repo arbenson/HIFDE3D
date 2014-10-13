@@ -31,6 +31,9 @@ if(NOT MPI_CXX_FOUND)
 endif()
 include_directories(${MPI_CXX_INCLUDE_PATH})
 set(EXTRA_FLAGS "${MPI_CXX_COMPILE_FLAGS}")
+if(RELEASE)
+    set(EXTRA_FLAGS "-DNDEBUG=1")
+endif()
 
 # Now append the extra flags
 set(CMAKE_CXX_FLAGS "${CXX_FLAGS} ${EXTRA_FLAGS}")
